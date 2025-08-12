@@ -12,7 +12,8 @@ describe('Schema Validation', () => {
     const result = validateTasksYaml(tasksYaml);
     
     if (!result.valid) {
-      console.log('Validation errors:', result.errors);
+      // Log validation errors for debugging
+      result.errors.forEach(error => console.error('Validation error:', error));
     }
     
     expect(result.valid).toBe(true);
@@ -28,7 +29,8 @@ describe('Schema Validation', () => {
     const result = validateTeamsYaml(teamsYaml);
     
     if (!result.valid) {
-      console.log('Validation errors:', result.errors);
+      // Log validation errors for debugging
+      result.errors.forEach(error => console.error('Validation error:', error));
     }
     
     expect(result.valid).toBe(true);

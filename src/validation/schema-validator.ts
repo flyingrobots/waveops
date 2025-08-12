@@ -6,6 +6,8 @@ import Ajv from 'ajv';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as yaml from 'js-yaml';
+// For CommonJS compatibility - __dirname is available in CommonJS modules
+declare const __dirname: string;
 
 const ajv = new Ajv({ allErrors: true, strict: false });
 
@@ -30,17 +32,39 @@ export interface ValidationSuccess<T> {
 
 export type ValidationResult<T> = ValidationSuccess<T> | ValidationError;
 
-export function validateTasksYaml(yamlContent: string): ValidationResult<any> {
+interface TasksData {
+  plan: string;
+  tz: string;
+  waves: Array<{
+    number: number;
+    teams: Record<string, Array<{
+      id: string;
+      issue: number;
+      effort: number;
+    }>>;
+  }>;
+  tasks: Array<{
+    id: string;
+    title: string;
+    wave: number;
+    team: string;
+    depends_on: string[];
+    acceptance: string[];
+    critical: boolean;
+  }>;
+}
+
+export function validateTasksYaml(yamlContent: string): ValidationResult<TasksData> {
   try {
     const data = yaml.load(yamlContent);
     const valid = validateTasks(data);
     
     if (valid) {
-      return { valid: true, data };
+      return { valid: true, data: data as TasksData };
     } else {
       return {
         valid: false,
-        errors: validateTasks.errors?.map(err => `${err.instancePath}: ${err.message}`) || ['Unknown validation error']
+        errors: validateTasks.errors?.map(err => `${err.instancePath}: ${err.message || 'Unknown error'}`) || ['Unknown validation error']
       };
     }
   } catch (error) {
@@ -51,17 +75,23 @@ export function validateTasksYaml(yamlContent: string): ValidationResult<any> {
   }
 }
 
-export function validateTeamsYaml(yamlContent: string): ValidationResult<any> {
+interface TeamsData {
+  [teamName: string]: {
+    members: string[];
+  };
+}
+
+export function validateTeamsYaml(yamlContent: string): ValidationResult<TeamsData> {
   try {
     const data = yaml.load(yamlContent);
     const valid = validateTeams(data);
     
     if (valid) {
-      return { valid: true, data };
+      return { valid: true, data: data as TeamsData };
     } else {
       return {
         valid: false,
-        errors: validateTeams.errors?.map(err => `${err.instancePath}: ${err.message}`) || ['Unknown validation error']
+        errors: validateTeams.errors?.map(err => `${err.instancePath}: ${err.message || 'Unknown error'}`) || ['Unknown validation error']
       };
     }
   } catch (error) {
@@ -72,17 +102,29 @@ export function validateTeamsYaml(yamlContent: string): ValidationResult<any> {
   }
 }
 
-export function validateConfigYaml(yamlContent: string): ValidationResult<any> {
+interface ConfigData {
+  github: {
+    token: string;
+    owner: string;
+    repo: string;
+  };
+  coordination: {
+    issue_prefix: string;
+    ready_environment: string;
+  };
+}
+
+export function validateConfigYaml(yamlContent: string): ValidationResult<ConfigData> {
   try {
     const data = yaml.load(yamlContent);
     const valid = validateConfig(data);
     
     if (valid) {
-      return { valid: true, data };
+      return { valid: true, data: data as ConfigData };
     } else {
       return {
         valid: false,
-        errors: validateConfig.errors?.map(err => `${err.instancePath}: ${err.message}`) || ['Unknown validation error']
+        errors: validateConfig.errors?.map(err => `${err.instancePath}: ${err.message || 'Unknown error'}`) || ['Unknown validation error']
       };
     }
   } catch (error) {

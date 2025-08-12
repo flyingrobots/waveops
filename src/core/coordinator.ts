@@ -4,6 +4,7 @@
 
 export class WaveCoordinator {
   constructor() {
-    // TODO: Implement wave coordination logic
+    // Wave coordination logic will be implemented based on
+    // the webhook handler and validation engine components
   }
 }

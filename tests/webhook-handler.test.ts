@@ -3,11 +3,38 @@
  */
 
 import { WebhookHandler, WebhookEvent } from '../src/github/webhook-handler';
+import { GitHubIssue, GitHubIssueComment } from '../src/types';
+
+// Test helper functions
+function createMockIssue(partial: Partial<GitHubIssue>): GitHubIssue {
+  return {
+    id: 1,
+    number: 1,
+    title: 'Test Issue',
+    body: 'Test body',
+    state: 'open',
+    user: { login: 'testuser' },
+    created_at: '2024-01-01T00:00:00Z',
+    updated_at: '2024-01-01T00:00:00Z',
+    ...partial
+  };
+}
+
+function createMockComment(partial: Partial<GitHubIssueComment>): GitHubIssueComment {
+  return {
+    id: 1,
+    body: 'Test comment',
+    user: { login: 'testuser' },
+    created_at: '2024-01-01T00:00:00Z',
+    updated_at: '2024-01-01T00:00:00Z',
+    ...partial
+  };
+}
 
 describe('WebhookHandler', () => {
   it('should identify coordination issues correctly', () => {
-    const coordinationIssue = { title: 'Wave 1 · waveops-v1 · Coordination' };
-    const regularIssue = { title: 'Fix bug in user authentication' };
+    const coordinationIssue = createMockIssue({ title: 'Wave 1 · waveops-v1 · Coordination' });
+    const regularIssue = createMockIssue({ title: 'Fix bug in user authentication' });
     
     expect(WebhookHandler.isCoordinationIssue(coordinationIssue)).toBe(true);
     expect(WebhookHandler.isCoordinationIssue(regularIssue)).toBe(false);
@@ -16,8 +43,8 @@ describe('WebhookHandler', () => {
   it('should parse /ready command correctly', () => {
     const event: WebhookEvent = {
       action: 'created',
-      comment: { body: '/ready wave-1' },
-      issue: { number: 18 },
+      comment: createMockComment({ body: '/ready wave-1' }),
+      issue: createMockIssue({ number: 18 }),
       sender: { login: 'alice' },
       repository: {},
     };
@@ -36,8 +63,8 @@ describe('WebhookHandler', () => {
   it('should parse /blocked command with reason', () => {
     const event: WebhookEvent = {
       action: 'created',
-      comment: { body: '/blocked reason:"CI is flaky on macOS"' },
-      issue: { number: 18 },
+      comment: createMockComment({ body: '/blocked reason:"CI is flaky on macOS"' }),
+      issue: createMockIssue({ number: 18 }),
       sender: { login: 'bob' },
       repository: {},
     };
@@ -55,8 +82,8 @@ describe('WebhookHandler', () => {
   it('should parse /claim command', () => {
     const event: WebhookEvent = {
       action: 'created',
-      comment: { body: '/claim W2.T001' },
-      issue: { number: 18 },
+      comment: createMockComment({ body: '/claim W2.T001' }),
+      issue: createMockIssue({ number: 18 }),
       sender: { login: 'alice' },
       repository: {},
     };
@@ -73,15 +100,15 @@ describe('WebhookHandler', () => {
   it('should route events correctly', () => {
     const issueCommentEvent: WebhookEvent = {
       action: 'created',
-      comment: { body: '/ready wave-1' },
-      issue: { number: 18 },
+      comment: createMockComment({ body: '/ready wave-1' }),
+      issue: createMockIssue({ number: 18 }),
       sender: { login: 'alice' },
       repository: {}
     };
 
     const issuesEvent: WebhookEvent = {
       action: 'opened',
-      issue: { number: 19, title: 'New issue' },
+      issue: createMockIssue({ number: 19, title: 'New issue' }),
       sender: { login: 'bob' },
       repository: {}
     };
@@ -99,14 +126,14 @@ describe('WebhookHandler', () => {
   it('should filter events correctly', () => {
     const coordinationEvent: WebhookEvent = {
       action: 'created',
-      issue: { title: 'Wave 1 · Coordination' },
+      issue: createMockIssue({ title: 'Wave 1 · Coordination' }),
       sender: { login: 'alice' },
       repository: {}
     };
 
     const regularEvent: WebhookEvent = {
       action: 'created', 
-      issue: { title: 'Fix bug' },
+      issue: createMockIssue({ title: 'Fix bug' }),
       sender: { login: 'bob' },
       repository: {}
     };
@@ -118,8 +145,8 @@ describe('WebhookHandler', () => {
   it('should handle malformed commands gracefully', () => {
     const event: WebhookEvent = {
       action: 'created',
-      comment: { body: 'Not a slash command' },
-      issue: { number: 18 },
+      comment: createMockComment({ body: 'Not a slash command' }),
+      issue: createMockIssue({ number: 18 }),
       sender: { login: 'alice' },
       repository: {}
     };

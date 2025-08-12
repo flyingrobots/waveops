@@ -49,7 +49,8 @@ export default [
         'jest': 'readonly',
         'beforeEach': 'readonly',
         'afterEach': 'readonly',
-        '__dirname': 'readonly'
+        '__dirname': 'readonly',
+        'console': 'readonly'
       }
     },
     plugins: {

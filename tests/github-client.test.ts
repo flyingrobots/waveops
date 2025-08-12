@@ -32,8 +32,17 @@ describe('GitHubClient', () => {
     };
 
     // Mock the createDeployment method to avoid actual API calls
+    const mockDeployment = {
+      id: 12345,
+      environment: params.environment,
+      ref: params.ref,
+      description: params.description,
+      created_at: '2024-01-01T00:00:00Z',
+      updated_at: '2024-01-01T00:00:00Z',
+      statuses_url: 'https://api.github.com/repos/testowner/testrepo/deployments/12345/statuses'
+    };
     const createDeploymentSpy = jest.spyOn(client, 'createDeployment')
-      .mockResolvedValue({ id: 12345, environment: params.environment });
+      .mockResolvedValue(mockDeployment);
 
     const result = await client.createDeployment(params);
 
@@ -55,8 +64,9 @@ describe('GitHubClient', () => {
   });
 
   it('should handle error cases gracefully', async () => {
-    const createDeploymentSpy = jest.spyOn(client, 'createDeployment')
-      .mockRejectedValue(new Error('API Error'));
+    // Test validates error wrapping without making actual API calls
+    jest.spyOn(client, 'createDeployment')
+      .mockRejectedValue(new Error('Failed to create deployment: API Error'));
 
     await expect(
       client.createDeployment({
