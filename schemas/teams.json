@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://waveops.dev/schemas/teams.json", 
+  "title": "Team Configuration",
+  "description": "Team membership configuration for WaveOps authorization",
+  "type": "object",
+  "description": "Teams and their members",
+  "additionalProperties": {
+    "type": "object",
+    "required": ["members"],
+    "properties": {
+      "members": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of team member usernames"
+      }
+    }
+  }
+}

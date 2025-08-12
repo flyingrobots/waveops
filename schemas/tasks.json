@@ -1,0 +1,126 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://waveops.dev/schemas/tasks.json",
+  "title": "Wave Tasks Configuration",
+  "description": "Configuration file defining tasks, waves, and dependencies for WaveOps coordination",
+  "type": "object",
+  "required": ["plan", "waves", "tasks"],
+  "properties": {
+    "plan": {
+      "type": "string",
+      "description": "Plan identifier"
+    },
+    "tz": {
+      "type": "string", 
+      "description": "Timezone for timestamps",
+      "default": "UTC"
+    },
+    "waves": {
+      "type": "array",
+      "description": "Wave definitions with team assignments",
+      "items": {
+        "type": "object",
+        "required": ["number", "teams"],
+        "properties": {
+          "number": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Wave number"
+          },
+          "quorum": {
+            "type": "object",
+            "description": "Quorum configuration for this wave",
+            "properties": {
+              "enabled": {
+                "type": "boolean",
+                "default": false
+              },
+              "threshold": {
+                "type": "string",
+                "description": "Threshold like '2/3' or '66%'"
+              },
+              "critical_teams": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Teams that must always be ready"
+              }
+            }
+          },
+          "teams": {
+            "type": "object",
+            "description": "Team task assignments",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["id", "issue"],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "Task identifier"
+                  },
+                  "issue": {
+                    "type": "integer",
+                    "description": "GitHub issue number"
+                  },
+                  "effort": {
+                    "type": "number",
+                    "description": "Effort estimate"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "tasks": {
+      "type": "array",
+      "description": "Task definitions with dependencies",
+      "items": {
+        "type": "object",
+        "required": ["id", "title", "wave", "team"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique task identifier"
+          },
+          "title": {
+            "type": "string",
+            "description": "Task title"
+          },
+          "wave": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Wave number this task belongs to"
+          },
+          "team": {
+            "type": "string", 
+            "description": "Team assigned to this task"
+          },
+          "depends_on": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of task IDs this task depends on"
+          },
+          "acceptance": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Acceptance criteria"
+          },
+          "critical": {
+            "type": "boolean",
+            "default": false,
+            "description": "Whether this task is critical"
+          }
+        }
+      }
+    }
+  }
+}
