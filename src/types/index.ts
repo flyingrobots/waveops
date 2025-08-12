@@ -26,6 +26,8 @@ export interface Task {
   depends_on: string[];
   acceptance: string[];
   critical: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 // GitHub API types
@@ -72,6 +74,8 @@ export interface GitHubIssue {
   };
   created_at: string;
   updated_at: string;
+  closed_at?: string;
+  assignees?: { login: string }[];
   labels?: ({ name?: string } | string)[];
 }
 
@@ -241,6 +245,8 @@ export interface SystemMetrics {
 }
 
 export interface AnalyticsConfig {
+  owner: string;
+  repo: string;
   collectionInterval: number; // milliseconds
   retentionPeriod: number; // milliseconds
   analysisWindowSize: number; // number of waves to analyze

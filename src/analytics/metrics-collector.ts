@@ -339,7 +339,7 @@ export class MetricsCollector implements IMetricsCollector {
     return tasks.length; // Simplified - in reality, would be over time period
   }
 
-  private async calculateCommunicationOverhead(_teamId: string): Promise<number> {
+  private async calculateCommunicationOverhead(teamId: string): Promise<number> {
     // Estimate time spent in coordination activities
     // This would integrate with calendar APIs, chat APIs, etc.
     // For now, return a reasonable estimate based on team size and task complexity
@@ -446,7 +446,7 @@ export class MetricsCollector implements IMetricsCollector {
     };
   }
 
-  private async fetchHistoricalFromGitHub(_waveId: string, _timeRange: { start: Date; end: Date }): Promise<WaveMetrics[]> {
+  private async fetchHistoricalFromGitHub(waveId: string, timeRange: { start: Date; end: Date }): Promise<WaveMetrics[]> {
     // Implementation would query GitHub API for historical data
     // For now, return empty array
     return [];
@@ -456,7 +456,7 @@ export class MetricsCollector implements IMetricsCollector {
     return timestamp >= timeRange.start && timestamp <= timeRange.end;
   }
 
-  private async estimateTaskDuration(_task: Task): Promise<number> {
+  private async estimateTaskDuration(task: Task): Promise<number> {
     // Estimate task duration based on complexity indicators
     let baseDuration = 4 * 3600000; // 4 hours in milliseconds
     
