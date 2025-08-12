@@ -18,8 +18,8 @@ describe('Schema Validation', () => {
     expect(result.valid).toBe(true);
     if (result.valid) {
       expect(result.data.plan).toBe('waveops-v1');
-      expect(result.data.waves).toHaveLength(1);
-      expect(result.data.tasks).toHaveLength(4);
+      expect(result.data.waves).toHaveLength(2); // Now has Wave 1 and Wave 2
+      expect(result.data.tasks).toHaveLength(8); // Now has 8 tasks total
     }
   });
 
