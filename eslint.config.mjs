@@ -35,6 +35,43 @@ export default [
     }
   },
   {
+    files: ['src/cli/**/*.ts'],
+    languageOptions: {
+      parser: tsparser,
+      parserOptions: {
+        ecmaVersion: 2022,
+        sourceType: 'module'
+      },
+      globals: {
+        'process': 'readonly',
+        'console': 'readonly',
+        'require': 'readonly',
+        'module': 'readonly',
+        '__dirname': 'readonly',
+        'Buffer': 'readonly'
+      }
+    },
+    plugins: {
+      '@typescript-eslint': tseslint,
+    },
+    rules: {
+      ...js.configs.recommended.rules,
+      
+      // CLI scripts need any type for command parsing
+      '@typescript-eslint/no-explicit-any': 'warn',
+      
+      // CLI rules
+      '@typescript-eslint/explicit-function-return-type': 'error',
+      '@typescript-eslint/no-unused-vars': ['error', { 'argsIgnorePattern': '^_' }],
+      'no-console': 'off', // Allow console in CLI scripts
+      'prefer-const': 'error',
+      'no-var': 'error',
+      'eqeqeq': ['error', 'always'],
+      'curly': 'error',
+      'no-eval': 'error'
+    }
+  },
+  {
     files: ['tests/**/*.ts'],
     languageOptions: {
       parser: tsparser,
@@ -48,9 +85,16 @@ export default [
         'expect': 'readonly',
         'jest': 'readonly',
         'beforeEach': 'readonly',
+        'beforeAll': 'readonly',
         'afterEach': 'readonly',
+        'afterAll': 'readonly',
         '__dirname': 'readonly',
-        'console': 'readonly'
+        'console': 'readonly',
+        'process': 'readonly',
+        'require': 'readonly',
+        'module': 'readonly',
+        'Buffer': 'readonly',
+        'NodeJS': 'readonly'
       }
     },
     plugins: {

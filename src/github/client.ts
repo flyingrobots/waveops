@@ -258,4 +258,86 @@ export class GitHubClient {
       return { valid: false, missing: ['basic repository access'] };
     }
   }
+
+  /**
+   * Get issue comments
+   */
+  async getIssueComments(issueNumber: number): Promise<GitHubIssueComment[]> {
+    try {
+      const response = await this.octokit.rest.issues.listComments({
+        owner: this.owner,
+        repo: this.repo,
+        issue_number: issueNumber
+      });
+
+      return response.data.map(comment => ({
+        id: comment.id,
+        body: comment.body || '',
+        user: {
+          login: comment.user?.login || 'unknown'
+        },
+        created_at: comment.created_at,
+        updated_at: comment.updated_at
+      }));
+    } catch (error) {
+      throw new Error(`Failed to get issue comments: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Get pull request details
+   */
+  async getPullRequest(prNumber: number): Promise<GitHubPullRequest> {
+    try {
+      const response = await this.octokit.rest.pulls.get({
+        owner: this.owner,
+        repo: this.repo,
+        pull_number: prNumber
+      });
+
+      return {
+        id: response.data.id,
+        number: response.data.number,
+        title: response.data.title,
+        merged: response.data.merged || false,
+        merge_commit_sha: response.data.merge_commit_sha,
+        state: response.data.state as 'open' | 'closed',
+        user: {
+          login: response.data.user?.login || 'unknown'
+        }
+      };
+    } catch (error) {
+      throw new Error(`Failed to get pull request: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Search issues
+   */
+  async searchIssues(query: string): Promise<{ items: GitHubIssue[] }> {
+    try {
+      const fullQuery = `${query} repo:${this.owner}/${this.repo}`;
+      const response = await this.octokit.rest.search.issuesAndPullRequests({
+        q: fullQuery
+      });
+
+      return {
+        items: response.data.items.map(item => ({
+          id: item.id,
+          number: item.number,
+          title: item.title,
+          body: item.body || '',
+          state: item.state as 'open' | 'closed',
+          user: {
+            login: item.user?.login || 'unknown'
+          },
+          created_at: item.created_at,
+          updated_at: item.updated_at,
+          labels: item.labels
+        }))
+      };
+    } catch (error) {
+      throw new Error(`Failed to search issues: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
 }

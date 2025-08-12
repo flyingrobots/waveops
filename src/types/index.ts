@@ -72,6 +72,7 @@ export interface GitHubIssue {
   };
   created_at: string;
   updated_at: string;
+  labels?: ({ name?: string } | string)[];
 }
 
 export interface GitHubPullRequest {
