@@ -17,7 +17,7 @@ export interface WorkerMetrics {
   workerUtilization: number; // percentage
 }
 
-interface WorkerInstance {
+export interface WorkerInstance {
   id: string;
   worker?: Worker;
   busy: boolean;

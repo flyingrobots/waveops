@@ -296,12 +296,12 @@ export class MetricsCollector implements IMetricsCollector {
             const commitChecks = await this.githubClient.getCommitChecks();
             
             // Check if latest check run was successful
-            if (commitChecks.conclusion === 'success') {
+            if (commitChecks.state === 'success') {
               firstPassSuccesses++;
             }
             
             // Check for rework by analyzing if there were failures before success
-            if (commitChecks.total_count > 1 && commitChecks.conclusion === 'success') {
+            if (commitChecks.checkRuns.length > 1 && commitChecks.state === 'success') {
               reworkCount++;
             }
           } catch (error) {
