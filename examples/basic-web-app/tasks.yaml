@@ -1,0 +1,111 @@
+# WaveOps Configuration Example: Basic Web Application
+# This example shows a typical 3-team setup for a web application feature
+
+plan: "user-authentication-feature"
+wave: 1
+tz: "America/New_York"
+
+teams:
+  frontend:
+    - id: "F001"
+      title: "Implement login form component"
+      depends_on: []
+      acceptance:
+        - "Login form renders with email/password fields"
+        - "Client-side validation prevents invalid submissions"
+        - "Loading state displays during authentication"
+        - "Error messages show for failed authentication"
+        - "Successful login redirects to dashboard"
+        - "Form is accessible (ARIA labels, keyboard navigation)"
+      critical: true
+
+    - id: "F002"
+      title: "Add logout functionality"
+      depends_on: ["F001"]
+      acceptance:
+        - "Logout button appears when user is authenticated"
+        - "Clicking logout clears user session"
+        - "User is redirected to login page after logout"
+        - "Logout works from any page in the application"
+      critical: true
+
+    - id: "F003"
+      title: "Implement password reset flow"
+      depends_on: ["F001"]
+      acceptance:
+        - "Forgot password link appears on login form"
+        - "Password reset form accepts email input"
+        - "Success message shows after reset request"
+        - "User can set new password via reset link"
+        - "Reset link expires after 24 hours"
+      critical: false
+
+  backend:
+    - id: "B001"
+      title: "Create user authentication API endpoints"
+      depends_on: []
+      acceptance:
+        - "POST /api/auth/login endpoint accepts email/password"
+        - "Returns JWT token for valid credentials"
+        - "Returns 401 for invalid credentials"
+        - "Implements rate limiting (5 attempts per minute)"
+        - "Passwords are hashed using bcrypt"
+        - "JWT tokens expire after 24 hours"
+      critical: true
+
+    - id: "B002"  
+      title: "Add session management endpoints"
+      depends_on: ["B001"]
+      acceptance:
+        - "POST /api/auth/logout endpoint invalidates tokens"
+        - "GET /api/auth/me endpoint returns current user"
+        - "Middleware validates JWT tokens on protected routes"
+        - "Refresh token mechanism implemented"
+        - "Token blacklist prevents reuse after logout"
+      critical: true
+
+    - id: "B003"
+      title: "Implement password reset API"
+      depends_on: ["B001"]
+      acceptance:
+        - "POST /api/auth/forgot-password sends reset email"
+        - "Reset tokens are cryptographically secure"
+        - "POST /api/auth/reset-password validates token and updates password"
+        - "Reset tokens expire after 24 hours"
+        - "Email service integration works correctly"
+      critical: false
+
+  qa:
+    - id: "Q001"
+      title: "Create end-to-end authentication tests"
+      depends_on: ["F001", "F002", "B001", "B002"]
+      acceptance:
+        - "Test suite covers complete login/logout flow"
+        - "Tests verify error handling for invalid credentials"
+        - "Session persistence tested across browser tabs"
+        - "Tests run against staging environment"
+        - "All critical user journeys covered"
+      critical: true
+
+    - id: "Q002"
+      title: "Security testing for authentication"
+      depends_on: ["B001", "B002", "B003"]
+      acceptance:
+        - "SQL injection tests pass"
+        - "CSRF protection verified"  
+        - "Rate limiting effectiveness tested"
+        - "JWT token security validated"
+        - "Password strength requirements enforced"
+        - "OWASP top 10 vulnerabilities checked"
+      critical: true
+
+    - id: "Q003"
+      title: "Performance testing for auth endpoints"
+      depends_on: ["B001", "B002"]
+      acceptance:
+        - "Login endpoint responds under 200ms for valid requests"
+        - "Can handle 100 concurrent login attempts"
+        - "Rate limiting doesn't affect legitimate users"
+        - "Database queries are optimized"
+        - "Memory usage stays within acceptable limits"
+      critical: false

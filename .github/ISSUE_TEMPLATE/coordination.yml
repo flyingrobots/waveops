@@ -1,0 +1,148 @@
+name: 🌊 Wave Coordination Issue
+description: Create a coordination issue to track team readiness for a wave
+title: "Wave [WAVE_NUMBER] · [PLAN_NAME] · Coordination"
+labels: ["coordination", "wave"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 🌊 Wave Coordination
+        
+        This issue coordinates team readiness for a wave. Teams report completion by commenting `/ready wave-N` when all assigned tasks are complete.
+        
+        **Important:** Only team leads or authorized members should report readiness for their team.
+
+  - type: input
+    id: plan_name
+    attributes:
+      label: Plan Name
+      description: The name of the plan this wave is part of
+      placeholder: "awesome-feature"
+    validations:
+      required: true
+
+  - type: input
+    id: wave_number
+    attributes:
+      label: Wave Number
+      description: The wave number (e.g., 1, 2, 3...)
+      placeholder: "1"
+    validations:
+      required: true
+
+  - type: input
+    id: timezone
+    attributes:
+      label: Timezone
+      description: Timezone for coordination
+      placeholder: "America/New_York"
+      value: "UTC"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: teams
+    attributes:
+      label: Teams Participating
+      description: Select all teams participating in this wave
+      options:
+        - label: Frontend Team
+        - label: Backend Team  
+        - label: QA Team
+        - label: DevOps Team
+        - label: Design Team
+        - label: Mobile Team
+        - label: Data Team
+
+  - type: textarea
+    id: tasks_frontend
+    attributes:
+      label: Frontend Tasks
+      description: List tasks assigned to Frontend team (if applicable)
+      placeholder: |
+        - [ ] F001: Implement login UI component
+        - [ ] F002: Add form validation
+        - [ ] F003: Integrate with auth API
+      render: markdown
+
+  - type: textarea
+    id: tasks_backend
+    attributes:
+      label: Backend Tasks
+      description: List tasks assigned to Backend team (if applicable)
+      placeholder: |
+        - [ ] B001: Create authentication endpoints
+        - [ ] B002: Implement JWT handling
+        - [ ] B003: Add rate limiting
+      render: markdown
+
+  - type: textarea
+    id: tasks_qa
+    attributes:
+      label: QA Tasks
+      description: List tasks assigned to QA team (if applicable)
+      placeholder: |
+        - [ ] Q001: Write end-to-end login tests
+        - [ ] Q002: Perform security testing
+        - [ ] Q003: Update test documentation
+      render: markdown
+
+  - type: textarea
+    id: tasks_other
+    attributes:
+      label: Other Team Tasks
+      description: List tasks for DevOps, Design, Mobile, Data, or other teams
+      placeholder: |
+        **DevOps:**
+        - [ ] D001: Setup authentication infrastructure
+        
+        **Design:**
+        - [ ] DS001: Create login flow mockups
+      render: markdown
+
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Cross-Team Dependencies
+      description: Document any dependencies between teams
+      placeholder: |
+        - QA team is blocked until Frontend (F001-F003) and Backend (B001-B003) complete
+        - Frontend F003 depends on Backend B001 completion
+      render: markdown
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Coordination Checklist
+      description: Complete this checklist as the wave progresses
+      options:
+        - label: "All task issues have been created"
+        - label: "Dependencies have been communicated to teams"
+        - label: "Team leads understand the readiness criteria"
+        - label: "Acceptance criteria are clear for all tasks"
+
+  - type: markdown
+    attributes:
+      value: |
+        ## How Teams Report Readiness
+        
+        When your team completes **all** assigned tasks for this wave:
+        
+        ```
+        /ready wave-[WAVE_NUMBER]
+        ```
+        
+        **Requirements for readiness:**
+        - ✅ All assigned tasks have merged PRs
+        - ✅ All acceptance criteria are met
+        - ✅ No blockers exist for other teams
+        - ✅ Team lead approval obtained
+        
+        ## Wave Completion
+        
+        WaveOps will automatically complete this wave when:
+        - All participating teams report readiness
+        - All task validations pass
+        - No blocking dependencies remain
+        
+        The wave will be marked complete with a GitHub Check Run and this issue will be closed.

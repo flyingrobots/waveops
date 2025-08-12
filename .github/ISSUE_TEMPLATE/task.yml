@@ -1,0 +1,179 @@
+name: 📋 WaveOps Task
+description: Create a task issue for WaveOps coordination
+title: "[TASK_ID]: [Task Title]"
+labels: ["task", "wave"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 📋 WaveOps Task
+        
+        This issue represents a task within a WaveOps wave. It should be linked to a PR that implements the functionality.
+
+  - type: input
+    id: task_id
+    attributes:
+      label: Task ID
+      description: The unique task identifier from your tasks.yaml file
+      placeholder: "F001, B002, Q003, etc."
+    validations:
+      required: true
+
+  - type: input
+    id: wave_number
+    attributes:
+      label: Wave Number
+      description: Which wave this task belongs to
+      placeholder: "1"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: team
+    attributes:
+      label: Team
+      description: Which team owns this task
+      options:
+        - Frontend
+        - Backend
+        - QA
+        - DevOps
+        - Design
+        - Mobile
+        - Data
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Detailed description of what needs to be implemented
+      placeholder: "Implement the user authentication login form with proper validation, error handling, and integration with the backend API."
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance_criteria
+    attributes:
+      label: Acceptance Criteria
+      description: Specific, testable criteria that define when this task is complete
+      placeholder: |
+        - [ ] Login form renders with email and password fields
+        - [ ] Form validates inputs client-side before submission
+        - [ ] Error messages display clearly for invalid inputs
+        - [ ] Loading state shows during authentication request
+        - [ ] Successful login redirects user to dashboard
+        - [ ] Failed login shows appropriate error message
+      render: markdown
+    validations:
+      required: true
+
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies
+      description: Other tasks or requirements this task depends on
+      placeholder: |
+        **Blocked by:**
+        - B001: Authentication API endpoints must be ready
+        - DS001: Login form designs must be finalized
+        
+        **Blocks:**
+        - F002: Dashboard implementation waits for login flow
+        - Q001: End-to-end tests need login functionality
+      render: markdown
+
+  - type: checkboxes
+    id: task_type
+    attributes:
+      label: Task Type
+      description: What type of work is this? (Select all that apply)
+      options:
+        - label: "Feature Implementation"
+        - label: "Bug Fix"
+        - label: "Testing"
+        - label: "Documentation"
+        - label: "Infrastructure"
+        - label: "Design"
+        - label: "Security"
+        - label: "Performance"
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority Level
+      description: How critical is this task to wave completion?
+      options:
+        - "Critical (Wave cannot complete without this)"
+        - "High (Important for wave goals)"
+        - "Medium (Good to have in this wave)"
+        - "Low (Can be moved to future wave if needed)"
+    validations:
+      required: true
+
+  - type: textarea
+    id: technical_notes
+    attributes:
+      label: Technical Notes
+      description: Implementation details, architectural decisions, or technical constraints
+      placeholder: |
+        - Use React Hook Form for form management
+        - Integrate with existing auth context
+        - Follow established error handling patterns
+        - Ensure accessibility compliance (WCAG 2.1 AA)
+
+  - type: textarea
+    id: testing_notes
+    attributes:
+      label: Testing Requirements
+      description: Specific testing requirements for this task
+      placeholder: |
+        - Unit tests for form validation logic
+        - Integration tests for API integration
+        - Visual regression tests for UI components
+        - Accessibility testing with screen readers
+      render: markdown
+
+  - type: checkboxes
+    id: definition_of_done
+    attributes:
+      label: Definition of Done
+      description: Checklist that must be completed before this task is considered done
+      options:
+        - label: "Code implemented and tested locally"
+        - label: "Unit tests written and passing"  
+        - label: "Integration tests passing"
+        - label: "Code review completed and approved"
+        - label: "Documentation updated (if applicable)"
+        - label: "Accessibility requirements met"
+        - label: "Performance requirements met"
+        - label: "Security review completed (if applicable)"
+        - label: "Design review approved (if applicable)"
+
+  - type: markdown
+    attributes:
+      value: |
+        ## Implementation Workflow
+        
+        1. **Create a feature branch** following naming convention: `feature/[TASK_ID]-description`
+        2. **Implement the functionality** according to acceptance criteria
+        3. **Create a Pull Request** that references this issue with "Closes #[issue_number]"
+        4. **Request code review** from team members
+        5. **Address feedback** and ensure all checks pass
+        6. **Merge the PR** - this will automatically close this issue
+        
+        ## Reporting Issues
+        
+        If you encounter blockers or need clarification:
+        - Comment on this issue with specific questions
+        - Tag relevant team members with @mentions
+        - Update the coordination issue if this affects wave timing
+        
+        ## Quality Standards
+        
+        - All acceptance criteria must be met
+        - Code must pass all automated checks (linting, tests, builds)
+        - Security and performance requirements must be satisfied
+        - Documentation must be updated if applicable
