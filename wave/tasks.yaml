@@ -1,0 +1,53 @@
+plan: waveops-v1
+tz: UTC  
+waves:
+  - number: 1
+    teams:
+      alpha:
+        - { id: W1.T001, issue: 1, effort: 5 }
+        - { id: W1.T002, issue: 2, effort: 3 }
+      beta:
+        - { id: W1.T003, issue: 3, effort: 4 }
+        - { id: W1.T004, issue: 4, effort: 3 }
+tasks:
+  - id: W1.T001
+    title: Project Setup - Initialize TypeScript project with dependencies
+    wave: 1
+    team: alpha
+    depends_on: []
+    acceptance:
+      - npm run build succeeds
+      - npm run test runs (even with placeholder tests)
+      - npm run lint passes
+      - All dependencies resolve correctly
+    critical: true
+  - id: W1.T002
+    title: Schema Implementation - JSON Schema validation for configuration files  
+    wave: 1
+    team: alpha
+    depends_on: [W1.T001]
+    acceptance:
+      - All schema files validate sample data from plan-spec.md
+      - TypeScript types compile without errors
+      - Invalid YAML produces helpful error messages
+    critical: true
+  - id: W1.T003
+    title: Core Data Models - Wave and Team state management
+    wave: 1
+    team: beta
+    depends_on: [W1.T002]
+    acceptance:
+      - State transitions are atomic and validated
+      - JSON serialization is deterministic
+      - HTML guard extraction works reliably
+    critical: true
+  - id: W1.T004
+    title: GitHub Integration Foundation - Octokit client and webhook handling
+    wave: 1
+    team: beta
+    depends_on: [W1.T001, W1.T002]
+    acceptance:
+      - GitHub App permissions validated programmatically
+      - Webhook events parsed and routed correctly
+      - Rate limiting prevents API abuse
+    critical: true

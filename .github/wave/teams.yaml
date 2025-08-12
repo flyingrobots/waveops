@@ -1,0 +1,4 @@
+alpha:
+  members: [alice]
+beta:  
+  members: [bob]
