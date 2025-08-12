@@ -39,8 +39,8 @@ export interface CheckRunParams {
 
 export class GitHubClient {
   private octokit: Octokit;
-  private owner: string;
-  private repo: string;
+  public readonly owner: string;
+  public readonly repo: string;
 
   constructor(options: GitHubClientOptions, owner: string, repo: string) {
     this.octokit = new Octokit({
