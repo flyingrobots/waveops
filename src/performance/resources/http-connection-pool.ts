@@ -76,7 +76,7 @@ export class HttpConnectionPool extends EventEmitter {
    * Initialize the connection pool
    */
   async initialize(): Promise<void> {
-    if (this.isInitialized) return;
+    if (this.isInitialized) {return;}
 
     // Start maintenance tasks
     this.startCleanupTimer();
@@ -204,12 +204,12 @@ export class HttpConnectionPool extends EventEmitter {
     this.isClosing = true;
 
     // Clear timers
-    if (this.cleanupTimer) clearInterval(this.cleanupTimer);
-    if (this.healthCheckTimer) clearInterval(this.healthCheckTimer);
+    if (this.cleanupTimer) {clearInterval(this.cleanupTimer);}
+    if (this.healthCheckTimer) {clearInterval(this.healthCheckTimer);}
 
     // Reject pending requests
     for (const request of this.pendingRequests) {
-      if (request.timeout) clearTimeout(request.timeout);
+      if (request.timeout) {clearTimeout(request.timeout);}
       request.reject(new Error('HTTP connection pool is closing'));
     }
     this.pendingRequests.length = 0;
@@ -239,12 +239,12 @@ export class HttpConnectionPool extends EventEmitter {
     this.isClosing = true;
 
     // Clear timers
-    if (this.cleanupTimer) clearInterval(this.cleanupTimer);
-    if (this.healthCheckTimer) clearInterval(this.healthCheckTimer);
+    if (this.cleanupTimer) {clearInterval(this.cleanupTimer);}
+    if (this.healthCheckTimer) {clearInterval(this.healthCheckTimer);}
 
     // Reject pending requests
     for (const request of this.pendingRequests) {
-      if (request.timeout) clearTimeout(request.timeout);
+      if (request.timeout) {clearTimeout(request.timeout);}
       request.reject(new Error('HTTP connection pool force closed'));
     }
     this.pendingRequests.length = 0;
@@ -323,7 +323,7 @@ export class HttpConnectionPool extends EventEmitter {
 
   private async destroyConnection(connectionId: string, force: boolean = false): Promise<void> {
     const connection = this.connections.get(connectionId);
-    if (!connection) return;
+    if (!connection) {return;}
 
     // Remove from host tracking
     const hostKey = `${connection.host}:${connection.port}:${connection.isSecure}`;
@@ -432,7 +432,7 @@ export class HttpConnectionPool extends EventEmitter {
           // Remove request from queue
           this.pendingRequests.splice(i, 1);
           
-          if (request.timeout) clearTimeout(request.timeout);
+          if (request.timeout) {clearTimeout(request.timeout);}
           
           connection.inUse = true;
           connection.lastUsed = new Date();
@@ -448,7 +448,7 @@ export class HttpConnectionPool extends EventEmitter {
               this.pendingRequests.splice(index, 1);
             }
             
-            if (request.timeout) clearTimeout(request.timeout);
+            if (request.timeout) {clearTimeout(request.timeout);}
             
             connection.inUse = true;
             connection.lastUsed = new Date();
@@ -465,19 +465,19 @@ export class HttpConnectionPool extends EventEmitter {
   }
 
   private isConnectionHealthy(connection: HttpConnection): boolean {
-    if (!connection.isValid) return false;
+    if (!connection.isValid) {return false;}
 
     const now = Date.now();
     const age = now - connection.created.getTime();
     const maxAge = this.config.maxLifetime || 3600000; // 1 hour default
 
     // Check connection age
-    if (age > maxAge) return false;
+    if (age > maxAge) {return false;}
 
     // Check error rate
     if (connection.requestCount > 0) {
       const errorRate = connection.errorCount / connection.requestCount;
-      if (errorRate > 0.1) return false; // 10% error threshold
+      if (errorRate > 0.1) {return false;} // 10% error threshold
     }
 
     return true;

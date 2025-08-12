@@ -14,19 +14,16 @@ import {
   BottleneckInfo,
   WarpDivergenceStats,
   LatencyStats,
-  AnalyticsConfig,
-  GitHubCheckRun,
-  GitHubPullRequest,
-  GitHubCommitChecks
+  AnalyticsConfig
 } from '../types';
 import { GitHubClient } from '../github/client';
 import { MetricsCollectionError, DataValidationError, GitHubIntegrationError } from './errors';
 
 interface IMetricsCollector {
-  collectWaveMetrics(waveState: WaveState, tasks: Task[]): Promise<WaveMetrics>;
-  collectTeamMetrics(teamId: string, teamState: TeamState, tasks: Task[]): Promise<TeamMetrics>;
-  createSnapshot(waveState: WaveState, tasks: Task[]): Promise<MetricsSnapshot>;
-  getHistoricalData(waveId: string, timeRange: { start: Date; end: Date }): Promise<WaveMetrics[]>;
+  collectWaveMetrics(_waveState: WaveState, _tasks: Task[]): Promise<WaveMetrics>;
+  collectTeamMetrics(_teamId: string, _teamState: TeamState, _tasks: Task[]): Promise<TeamMetrics>;
+  createSnapshot(_waveState: WaveState, _tasks: Task[]): Promise<MetricsSnapshot>;
+  getHistoricalData(_waveId: string, _timeRange: { start: Date; end: Date }): Promise<WaveMetrics[]>;
 }
 
 export class MetricsCollector implements IMetricsCollector {
@@ -241,7 +238,7 @@ export class MetricsCollector implements IMetricsCollector {
 
   private calculateReadySkew(teamState: TeamState, tasks: Task[]): number {
     // Calculate variance in task readiness across team
-    if (tasks.length === 0) return 0;
+    if (tasks.length === 0) {return 0;}
 
     const readyTasks = tasks.filter(task => 
       teamState.status === 'ready' && task.depends_on.length === 0
@@ -304,7 +301,7 @@ export class MetricsCollector implements IMetricsCollector {
           }
         } catch (error) {
           // Log but continue processing other tasks
-          console.warn(`Failed to get GitHub metrics for task ${task.id}:`, error);
+          // Failed to get GitHub metrics for task - continuing processing
         }
       }
 
@@ -342,7 +339,7 @@ export class MetricsCollector implements IMetricsCollector {
     return tasks.length; // Simplified - in reality, would be over time period
   }
 
-  private async calculateCommunicationOverhead(teamId: string): Promise<number> {
+  private async calculateCommunicationOverhead(_teamId: string): Promise<number> {
     // Estimate time spent in coordination activities
     // This would integrate with calendar APIs, chat APIs, etc.
     // For now, return a reasonable estimate based on team size and task complexity
@@ -449,7 +446,7 @@ export class MetricsCollector implements IMetricsCollector {
     };
   }
 
-  private async fetchHistoricalFromGitHub(waveId: string, timeRange: { start: Date; end: Date }): Promise<WaveMetrics[]> {
+  private async fetchHistoricalFromGitHub(_waveId: string, _timeRange: { start: Date; end: Date }): Promise<WaveMetrics[]> {
     // Implementation would query GitHub API for historical data
     // For now, return empty array
     return [];
@@ -459,7 +456,7 @@ export class MetricsCollector implements IMetricsCollector {
     return timestamp >= timeRange.start && timestamp <= timeRange.end;
   }
 
-  private async estimateTaskDuration(task: Task): Promise<number> {
+  private async estimateTaskDuration(_task: Task): Promise<number> {
     // Estimate task duration based on complexity indicators
     let baseDuration = 4 * 3600000; // 4 hours in milliseconds
     
@@ -485,7 +482,7 @@ export class MetricsCollector implements IMetricsCollector {
   }
 
   private calculateMedian(values: number[]): number {
-    if (values.length === 0) return 0;
+    if (values.length === 0) {return 0;}
     
     const sorted = [...values].sort((a, b) => a - b);
     const middle = Math.floor(sorted.length / 2);
@@ -498,7 +495,7 @@ export class MetricsCollector implements IMetricsCollector {
   }
 
   private calculatePercentile(values: number[], percentile: number): number {
-    if (values.length === 0) return 0;
+    if (values.length === 0) {return 0;}
     
     const sorted = [...values].sort((a, b) => a - b);
     const index = Math.ceil((percentile / 100) * sorted.length) - 1;
@@ -506,7 +503,7 @@ export class MetricsCollector implements IMetricsCollector {
   }
 
   private async calculateAverageTaskDuration(tasks: Task[]): Promise<number> {
-    if (tasks.length === 0) return 0;
+    if (tasks.length === 0) {return 0;}
     
     const durations = await Promise.all(
       tasks.map(task => this.estimateTaskDuration(task))

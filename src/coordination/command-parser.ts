@@ -18,11 +18,11 @@ import {
   ParserConfig,
   ParseResult
 } from './types';
-import { CommandParseError, CommandValidationError, ParseErrorCode } from './errors';
+import { CommandParseError, ParseErrorCode } from './errors';
 
 export interface ICommandParser {
-  parse(input: string, context: CommandContext): Promise<ParseResult>;
-  validate(command: ParsedCommand, context: CommandContext): Promise<ValidationResult>;
+  parse(_input: string, _context: CommandContext): Promise<ParseResult>;
+  validate(_command: ParsedCommand, _context: CommandContext): Promise<ValidationResult>;
 }
 
 export class CommandParser implements ICommandParser {
@@ -212,9 +212,9 @@ export class CommandParser implements ICommandParser {
    */
   private initializePatterns(): void {
     this.commandPatterns.set(CommandType.WAVE_START, [
-      /^start\s+wave\s+(\w+)(?:\s+with\s+teams?\s+([\w\s,\-]+))?/i,
-      /^launch\s+wave\s+(\w+)(?:\s+(?:using|with)\s+teams?\s+([\w\s,\-]+))?/i,
-      /^begin\s+wave\s+(\w+)(?:\s+teams?\s+([\w\s,\-]+))?/i
+      /^start\s+wave\s+(\w+)(?:\s+with\s+teams?\s+([\w\s,\\-]+))?/i,
+      /^launch\s+wave\s+(\w+)(?:\s+(?:using|with)\s+teams?\s+([\w\s,\\-]+))?/i,
+      /^begin\s+wave\s+(\w+)(?:\s+teams?\s+([\w\s,\\-]+))?/i
     ]);
 
     this.commandPatterns.set(CommandType.TEAM_ASSIGN, [
@@ -237,15 +237,15 @@ export class CommandParser implements ICommandParser {
     ]);
 
     this.commandPatterns.set(CommandType.TEAM_SYNC, [
-      /^sync\s+teams?\s+([\w\s,\-]+)\s+on\s+(.+)/i,
-      /^synchronize\s+teams?\s+([\w\s,\-]+)\s+(?:when|on|after)\s+(.+)/i,
-      /^coordinate\s+teams?\s+([\w\s,\-]+)\s+for\s+(.+)/i
+      /^sync\s+teams?\s+([\w\s,\\-]+)\s+on\s+(.+)/i,
+      /^synchronize\s+teams?\s+([\w\s,\\-]+)\s+(?:when|on|after)\s+(.+)/i,
+      /^coordinate\s+teams?\s+([\w\s,\\-]+)\s+for\s+(.+)/i
     ]);
 
     this.commandPatterns.set(CommandType.LOAD_BALANCE, [
-      /^(?:auto-?)?balance\s+(?:load\s+)?(?:across\s+)?teams?\s+([\w\s,\-]+)(?:\s+using\s+(\w+))?/i,
-      /^distribute\s+(?:work\s+)?(?:across\s+)?teams?\s+([\w\s,\-]+)(?:\s+(\w+)\s+strategy)?/i,
-      /^rebalance\s+teams?\s+([\w\s,\-]+)/i
+      /^(?:auto\-?)?balance\s+(?:load\s+)?(?:across\s+)?teams?\s+([\w\s,\\-]+)(?:\s+using\s+(\w+))?/i,
+      /^distribute\s+(?:work\s+)?(?:across\s+)?teams?\s+([\w\s,\\-]+)(?:\s+(\w+)\s+strategy)?/i,
+      /^rebalance\s+teams?\s+([\w\s,\\-]+)/i
     ]);
   }
 
@@ -515,7 +515,7 @@ export class CommandParser implements ICommandParser {
    * Parse team list from string
    */
   private parseTeamList(teamsStr: string, context: CommandContext): string[] {
-    if (!teamsStr) return [];
+    if (!teamsStr) {return [];}
     
     const teams = teamsStr.split(/[,\s]+/)
       .map(t => t.trim().replace(/^team-?/i, ''))
@@ -548,7 +548,7 @@ export class CommandParser implements ICommandParser {
    * Parse task list from string
    */
   private parseTaskList(tasksStr: string, context: CommandContext): string[] {
-    if (!tasksStr) return [];
+    if (!tasksStr) {return [];}
     
     const tasks = tasksStr.split(/[,\s]+/)
       .map(t => t.trim().replace('#', ''))
@@ -577,7 +577,7 @@ export class CommandParser implements ICommandParser {
    * Parse priority from string
    */
   private parsePriority(priorityStr?: string): Priority {
-    if (!priorityStr) return Priority.NORMAL;
+    if (!priorityStr) {return Priority.NORMAL;}
     
     const lower = priorityStr.toLowerCase();
     switch (lower) {
@@ -592,11 +592,11 @@ export class CommandParser implements ICommandParser {
    * Parse load balancing strategy
    */
   private parseBalanceStrategy(strategyStr?: string): 'round_robin' | 'capacity_based' | 'priority_weighted' {
-    if (!strategyStr) return 'round_robin';
+    if (!strategyStr) {return 'round_robin';}
     
     const lower = strategyStr.toLowerCase();
-    if (lower.includes('capacity')) return 'capacity_based';
-    if (lower.includes('priority')) return 'priority_weighted';
+    if (lower.includes('capacity')) {return 'capacity_based';}
+    if (lower.includes('priority')) {return 'priority_weighted';}
     return 'round_robin';
   }
 

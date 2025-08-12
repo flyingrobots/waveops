@@ -222,9 +222,9 @@ export class MemoryManager extends EventEmitter implements IMemoryManager {
   async close(): Promise<void> {
     try {
       // Stop timers
-      if (this.metricsTimer) clearInterval(this.metricsTimer);
-      if (this.cleanupTimer) clearInterval(this.cleanupTimer);
-      if (this.gcTimer) clearInterval(this.gcTimer);
+      if (this.metricsTimer) {clearInterval(this.metricsTimer);}
+      if (this.cleanupTimer) {clearInterval(this.cleanupTimer);}
+      if (this.gcTimer) {clearInterval(this.gcTimer);}
 
       // Cleanup components
       await this.poolManager.close();

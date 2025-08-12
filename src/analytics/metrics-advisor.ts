@@ -9,7 +9,6 @@ import {
   WaveRecommendation,
   PerformancePattern,
   WavePrediction,
-  MetricsSnapshot,
   AnalyticsConfig,
   TeamMetrics,
   AlertThresholds
@@ -20,12 +19,12 @@ import { GitHubClient } from '../github/client';
 import { AnalyticsError, ConfigurationError, MetricsCollectionError } from './errors';
 
 interface IMetricsAdvisor {
-  analyzeWavePerformance(waveState: WaveState, tasks: Task[]): Promise<WaveAnalysisResult>;
-  generateRecommendations(waveMetrics: WaveMetrics, patterns: PerformancePattern[]): Promise<WaveRecommendation[]>;
-  predictWaveOutcome(waveState: WaveState, tasks: Task[]): Promise<WavePrediction>;
-  createPerformanceDashboard(waveId: string): Promise<PerformanceDashboard>;
-  generateAlerts(currentMetrics: WaveMetrics, thresholds: AlertThresholds): Promise<Alert[]>;
-  exportMetricsReport(waveId: string, format: 'json' | 'summary'): Promise<string>;
+  analyzeWavePerformance(_waveState: WaveState, _tasks: Task[]): Promise<WaveAnalysisResult>;
+  generateRecommendations(_waveMetrics: WaveMetrics, _patterns: PerformancePattern[]): Promise<WaveRecommendation[]>;
+  predictWaveOutcome(_waveState: WaveState, _tasks: Task[]): Promise<WavePrediction>;
+  createPerformanceDashboard(_waveId: string): Promise<PerformanceDashboard>;
+  generateAlerts(_currentMetrics: WaveMetrics, _thresholds: AlertThresholds): Promise<Alert[]>;
+  exportMetricsReport(_waveId: string, _format: 'json' | 'summary'): Promise<string>;
 }
 
 export interface WaveAnalysisResult {
@@ -484,7 +483,6 @@ export class MetricsAdvisor implements IMetricsAdvisor {
 
     // Analyze team occupancy imbalance
     const occupancies = Object.values(waveMetrics.teamMetrics).map(team => team.occupancy);
-    const avgOccupancy = occupancies.reduce((sum, occ) => sum + occ, 0) / occupancies.length;
     const maxVariance = Math.max(...occupancies) - Math.min(...occupancies);
 
     if (maxVariance > 30) {
@@ -659,9 +657,9 @@ export class MetricsAdvisor implements IMetricsAdvisor {
 
   // Utility methods for mapping and classification
   private mapPatternToRecommendationType(pattern: PerformancePattern): WaveRecommendation['type'] {
-    if (pattern.affectedMetrics.includes('occupancy')) return 'team_rebalancing';
-    if (pattern.affectedMetrics.includes('barrierStallPercent')) return 'dependency_optimization';
-    if (pattern.name.toLowerCase().includes('resource')) return 'resource_allocation';
+    if (pattern.affectedMetrics.includes('occupancy')) {return 'team_rebalancing';}
+    if (pattern.affectedMetrics.includes('barrierStallPercent')) {return 'dependency_optimization';}
+    if (pattern.name.toLowerCase().includes('resource')) {return 'resource_allocation';}
     return 'process_improvement';
   }
 
@@ -675,9 +673,9 @@ export class MetricsAdvisor implements IMetricsAdvisor {
   }
 
   private estimateEffortFromPattern(pattern: PerformancePattern): WaveRecommendation['effort'] {
-    if (pattern.impact === 'critical') return 'high';
-    if (pattern.impact === 'high') return 'medium';
-    if (pattern.impact === 'medium') return 'low';
+    if (pattern.impact === 'critical') {return 'high';}
+    if (pattern.impact === 'high') {return 'medium';}
+    if (pattern.impact === 'medium') {return 'low';}
     return 'minimal';
   }
 

@@ -321,7 +321,7 @@ export class CacheManager extends EventEmitter implements ICacheManager {
     layers: CacheLayer[]
   ): Promise<void> {
     const currentIndex = layers.indexOf(currentLayer);
-    if (currentIndex <= 0) return;
+    if (currentIndex <= 0) {return;}
 
     const higherLayers = layers.slice(0, currentIndex);
     const ttl = this.getDefaultTTL(key);
@@ -399,8 +399,8 @@ export class CacheManager extends EventEmitter implements ICacheManager {
     const tags: string[] = [];
     const parts = key.split(':');
     
-    if (parts.length > 0) tags.push(`type:${parts[0]}`);
-    if (parts.length > 1) tags.push(`resource:${parts[1]}`);
+    if (parts.length > 0) {tags.push(`type:${parts[0]}`);}
+    if (parts.length > 1) {tags.push(`resource:${parts[1]}`);}
     
     return tags;
   }

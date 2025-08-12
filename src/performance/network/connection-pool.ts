@@ -176,7 +176,7 @@ export class ConnectionPool extends EventEmitter {
 
   private canCreateNewConnection(): boolean {
     const poolConfig = this.config.pooling;
-    if (!poolConfig) return true;
+    if (!poolConfig) {return true;}
 
     return this.connections.size < poolConfig.maxConnections;
   }
@@ -327,14 +327,14 @@ export class ConnectionPool extends EventEmitter {
 
   private performMaintenance(): void {
     const poolConfig = this.config.pooling;
-    if (!poolConfig) return;
+    if (!poolConfig) {return;}
 
     const now = Date.now();
     const connectionsToClose: Connection[] = [];
 
     // Find connections to close
     for (const connection of this.connections.values()) {
-      if (connection.inUse) continue;
+      if (connection.inUse) {continue;}
 
       const idleTime = now - connection.lastUsed.getTime();
       const age = now - connection.created.getTime();

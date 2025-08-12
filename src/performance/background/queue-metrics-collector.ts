@@ -226,7 +226,7 @@ export class QueueMetricsCollector extends EventEmitter {
   private updateQueueMetrics(state: QueueState): void {
     const recentTasks = state.recentTasks.slice(-50); // Last 50 tasks
     
-    if (recentTasks.length === 0) return;
+    if (recentTasks.length === 0) {return;}
 
     // Calculate completed and failed counts
     const completed = recentTasks.filter(task => task.success).length;

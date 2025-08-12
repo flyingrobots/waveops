@@ -237,7 +237,7 @@ export class RateLimiter extends EventEmitter {
   }
 
   private async processQueue(): Promise<void> {
-    if (this.requestQueue.length === 0) return;
+    if (this.requestQueue.length === 0) {return;}
 
     const processed: string[] = [];
     

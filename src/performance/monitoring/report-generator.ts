@@ -82,7 +82,7 @@ export class ReportGenerator extends EventEmitter {
    * Start the report generator
    */
   async start(): Promise<void> {
-    if (!this.config.enabled || this.isRunning) return;
+    if (!this.config.enabled || this.isRunning) {return;}
 
     this.isRunning = true;
 
@@ -98,7 +98,7 @@ export class ReportGenerator extends EventEmitter {
    * Stop the report generator
    */
   async stop(): Promise<void> {
-    if (!this.isRunning) return;
+    if (!this.isRunning) {return;}
 
     this.isRunning = false;
 
@@ -199,9 +199,9 @@ export class ReportGenerator extends EventEmitter {
 
   private parseSchedule(schedule: string): number {
     // Simplified schedule parsing - in production use a proper cron parser
-    if (schedule.includes('hourly')) return 3600000; // 1 hour
-    if (schedule.includes('daily')) return 86400000; // 24 hours
-    if (schedule.includes('weekly')) return 604800000; // 7 days
+    if (schedule.includes('hourly')) {return 3600000;} // 1 hour
+    if (schedule.includes('daily')) {return 86400000;} // 24 hours
+    if (schedule.includes('weekly')) {return 604800000;} // 7 days
     return 86400000; // Default to daily
   }
 
@@ -469,25 +469,25 @@ during deployment windows reaching maximum of 2.1%.
   }
 
   private calculateHealthScore(): number {
-    if (this.snapshots.length === 0) return 100;
+    if (this.snapshots.length === 0) {return 100;}
 
     const latest = this.snapshots[this.snapshots.length - 1];
     let score = 100;
 
     // Deduct points for high response time
-    if (latest.applicationMetrics.avgResponseTime > 500) score -= 20;
-    else if (latest.applicationMetrics.avgResponseTime > 200) score -= 10;
+    if (latest.applicationMetrics.avgResponseTime > 500) {score -= 20;}
+    else if (latest.applicationMetrics.avgResponseTime > 200) {score -= 10;}
 
     // Deduct points for high error rate
-    if (latest.applicationMetrics.errorRate > 5) score -= 30;
-    else if (latest.applicationMetrics.errorRate > 1) score -= 15;
+    if (latest.applicationMetrics.errorRate > 5) {score -= 30;}
+    else if (latest.applicationMetrics.errorRate > 1) {score -= 15;}
 
     // Deduct points for high resource usage
-    if (latest.systemMetrics.cpuUsage > 90) score -= 20;
-    else if (latest.systemMetrics.cpuUsage > 75) score -= 10;
+    if (latest.systemMetrics.cpuUsage > 90) {score -= 20;}
+    else if (latest.systemMetrics.cpuUsage > 75) {score -= 10;}
 
-    if (latest.systemMetrics.memoryUtilization > 90) score -= 15;
-    else if (latest.systemMetrics.memoryUtilization > 80) score -= 8;
+    if (latest.systemMetrics.memoryUtilization > 90) {score -= 15;}
+    else if (latest.systemMetrics.memoryUtilization > 80) {score -= 8;}
 
     return Math.max(0, score);
   }

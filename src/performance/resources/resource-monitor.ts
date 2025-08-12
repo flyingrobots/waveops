@@ -199,7 +199,7 @@ export class ResourceMonitor extends EventEmitter {
   }
 
   private startMonitoring(): void {
-    if (this.isMonitoring) return;
+    if (this.isMonitoring) {return;}
 
     this.isMonitoring = true;
     this.establishBaseline();
@@ -350,7 +350,7 @@ export class ResourceMonitor extends EventEmitter {
   }
 
   private calculateGrowthTrend(data: { time: number; value: number }[]): { trend: number; r2: number } {
-    if (data.length < 2) return { trend: 0, r2: 0 };
+    if (data.length < 2) {return { trend: 0, r2: 0 };}
 
     // Simple linear regression
     const n = data.length;
@@ -401,9 +401,9 @@ export class ResourceMonitor extends EventEmitter {
   private calculateLeakSeverity(growthRate: number, threshold: number): 'low' | 'medium' | 'high' | 'critical' {
     const ratio = growthRate / threshold;
     
-    if (ratio >= 2) return 'critical';
-    if (ratio >= 1) return 'high';
-    if (ratio >= 0.5) return 'medium';
+    if (ratio >= 2) {return 'critical';}
+    if (ratio >= 1) {return 'high';}
+    if (ratio >= 0.5) {return 'medium';}
     return 'low';
   }
 

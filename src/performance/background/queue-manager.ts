@@ -139,7 +139,7 @@ export class QueueManager extends EventEmitter {
   async getTaskStatus(taskId: string): Promise<Task | null> {
     for (const queue of this.queues.values()) {
       const task = await queue.getTask(taskId);
-      if (task) return task;
+      if (task) {return task;}
     }
     return null;
   }
@@ -173,7 +173,7 @@ export class QueueManager extends EventEmitter {
    * Start processing tasks
    */
   async start(): Promise<void> {
-    if (this.isShuttingDown) return;
+    if (this.isShuttingDown) {return;}
 
     await this.workerPool.start();
     await this.scheduler.start();
@@ -255,7 +255,7 @@ export class QueueManager extends EventEmitter {
 
   private async startQueueProcessing(queue: TaskQueue): Promise<void> {
     const processNext = async () => {
-      if (this.isShuttingDown) return;
+      if (this.isShuttingDown) {return;}
 
       const task = await queue.dequeue();
       if (!task) {
@@ -376,7 +376,7 @@ export class QueueManager extends EventEmitter {
   }
 
   private shouldRetry(error: unknown, queueConfig: QueueConfig): boolean {
-    if (!queueConfig.retryPolicy) return false;
+    if (!queueConfig.retryPolicy) {return false;}
 
     const retryableErrors = queueConfig.retryPolicy.retryableErrors || [];
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -386,7 +386,7 @@ export class QueueManager extends EventEmitter {
 
   private calculateRetryDelay(attempt: number, queueConfig: QueueConfig): number {
     const retryPolicy = queueConfig.retryPolicy;
-    if (!retryPolicy) return 1000;
+    if (!retryPolicy) {return 1000;}
 
     let delay = retryPolicy.initialDelay;
 
@@ -542,7 +542,7 @@ class TaskQueue extends EventEmitter {
 
   async removeTask(taskId: string): Promise<boolean> {
     const task = this.tasks.get(taskId);
-    if (!task) return false;
+    if (!task) {return false;}
 
     // Remove from pending queue
     const pendingIndex = this.pendingTasks.findIndex(t => t.id === taskId);

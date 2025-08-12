@@ -1017,7 +1017,7 @@ export class EnterpriseAutoScalingManager {
   }
 
   private calculateAverageUtilization(timeSeries: MetricTimeSeries): number {
-    if (timeSeries.dataPoints.length === 0) return 0;
+    if (timeSeries.dataPoints.length === 0) {return 0;}
     
     const sum = timeSeries.dataPoints.reduce((acc, point) => acc + point.value, 0);
     return sum / timeSeries.dataPoints.length;

@@ -69,7 +69,7 @@ export class AlertManager extends EventEmitter {
    * Start the alert manager
    */
   async start(): Promise<void> {
-    if (!this.config.enabled || this.isRunning) return;
+    if (!this.config.enabled || this.isRunning) {return;}
 
     this.isRunning = true;
 
@@ -83,13 +83,13 @@ export class AlertManager extends EventEmitter {
    * Stop the alert manager
    */
   async stop(): Promise<void> {
-    if (!this.isRunning) return;
+    if (!this.isRunning) {return;}
 
     this.isRunning = false;
 
     // Clear timers
-    if (this.evaluationTimer) clearInterval(this.evaluationTimer);
-    if (this.cleanupTimer) clearInterval(this.cleanupTimer);
+    if (this.evaluationTimer) {clearInterval(this.evaluationTimer);}
+    if (this.cleanupTimer) {clearInterval(this.cleanupTimer);}
 
     this.emit('alert-manager-stopped');
   }
@@ -98,10 +98,10 @@ export class AlertManager extends EventEmitter {
    * Evaluate alert rule
    */
   evaluateRule(rule: AlertRule, value: number, timestamp: Date): void {
-    if (!rule.enabled) return;
+    if (!rule.enabled) {return;}
 
     // Check if rule is in cooldown
-    if (this.isRuleInCooldown(rule)) return;
+    if (this.isRuleInCooldown(rule)) {return;}
 
     const existingAlert = this.findActiveAlert(rule.name);
     const conditionMet = this.evaluateCondition(rule.condition, value);
@@ -132,7 +132,7 @@ export class AlertManager extends EventEmitter {
    */
   resolveAlert(alertId: string, timestamp?: Date): boolean {
     const alert = this.activeAlerts.get(alertId);
-    if (!alert || alert.resolved) return false;
+    if (!alert || alert.resolved) {return false;}
 
     alert.resolved = true;
     alert.resolvedAt = timestamp || new Date();
@@ -151,7 +151,7 @@ export class AlertManager extends EventEmitter {
    */
   acknowledgeAlert(alertId: string, acknowledgedBy: string): boolean {
     const alert = this.activeAlerts.get(alertId);
-    if (!alert || alert.resolved) return false;
+    if (!alert || alert.resolved) {return false;}
 
     alert.acknowledgedBy = acknowledgedBy;
     alert.acknowledgedAt = new Date();
@@ -292,13 +292,13 @@ export class AlertManager extends EventEmitter {
   }
 
   private async notifyChannels(alert: Alert, action: 'triggered' | 'resolved'): Promise<void> {
-    if (alert.channels.length === 0) return;
+    if (alert.channels.length === 0) {return;}
 
     const notificationPromises: Promise<void>[] = [];
 
     for (const channelName of alert.channels) {
       const channel = this.config.channels.find(c => c.name === channelName);
-      if (!channel || !channel.enabled) continue;
+      if (!channel || !channel.enabled) {continue;}
 
       const handler = this.channelHandlers.get(channel.type);
       if (handler) {
@@ -348,7 +348,7 @@ export class AlertManager extends EventEmitter {
   }
 
   private isThrottled(): boolean {
-    if (!this.config.throttling?.enabled) return false;
+    if (!this.config.throttling?.enabled) {return false;}
 
     const now = Date.now();
     const oneHourAgo = now - 3600000;

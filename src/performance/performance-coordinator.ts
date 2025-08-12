@@ -4,6 +4,7 @@
  */
 
 import { EventEmitter } from 'events';
+/* eslint-env node */
 import {
   CacheConfig,
   MemoryConfig,
@@ -75,8 +76,8 @@ export class PerformanceCoordinator extends EventEmitter {
   private isInitialized: boolean;
   private isRunning: boolean;
   private startTime: Date;
-  private metricsTimer?: NodeJS.Timeout;
-  private healthCheckTimer?: NodeJS.Timeout;
+  private metricsTimer?: ReturnType<typeof setInterval>;
+  private healthCheckTimer?: ReturnType<typeof setInterval>;
 
   constructor(config: PerformanceConfig) {
     super();
@@ -100,7 +101,7 @@ export class PerformanceCoordinator extends EventEmitter {
    * Initialize all performance systems
    */
   async initialize(): Promise<void> {
-    if (this.isInitialized) return;
+    if (this.isInitialized) {return;}
 
     this.emit('initialization-started');
 
@@ -129,7 +130,7 @@ export class PerformanceCoordinator extends EventEmitter {
       await this.initialize();
     }
 
-    if (this.isRunning) return;
+    if (this.isRunning) {return;}
 
     this.isRunning = true;
     this.startTime = new Date();
@@ -145,13 +146,13 @@ export class PerformanceCoordinator extends EventEmitter {
    * Stop performance optimization gracefully
    */
   async stop(): Promise<void> {
-    if (!this.isRunning) return;
+    if (!this.isRunning) {return;}
 
     this.isRunning = false;
 
     // Stop timers
-    if (this.metricsTimer) clearInterval(this.metricsTimer);
-    if (this.healthCheckTimer) clearInterval(this.healthCheckTimer);
+    if (this.metricsTimer) {clearInterval(this.metricsTimer);}
+    if (this.healthCheckTimer) {clearInterval(this.healthCheckTimer);}
 
     this.emit('shutdown-started');
 
@@ -426,12 +427,12 @@ export class PerformanceCoordinator extends EventEmitter {
     let score = 100;
 
     // Deduct points based on various factors
-    if (metrics.cache.hitRate < 80) score -= 10;
-    if (metrics.memory.heapUtilization > 80) score -= 15;
-    if (metrics.network.avgResponseTime > 500) score -= 15;
-    if (metrics.network.errorRate > 2) score -= 20;
-    if (metrics.background.queueSize > 100) score -= 10;
-    if (metrics.resources.leakCount > 0) score -= 15;
+    if (metrics.cache.hitRate < 80) {score -= 10;}
+    if (metrics.memory.heapUtilization > 80) {score -= 15;}
+    if (metrics.network.avgResponseTime > 500) {score -= 15;}
+    if (metrics.network.errorRate > 2) {score -= 20;}
+    if (metrics.background.queueSize > 100) {score -= 10;}
+    if (metrics.resources.leakCount > 0) {score -= 15;}
 
     return Math.max(0, score);
   }
@@ -441,7 +442,7 @@ export class PerformanceCoordinator extends EventEmitter {
       (pool as { poolUtilization: number }).poolUtilization || 0
     );
     
-    if (poolUsages.length === 0) return 0;
+    if (poolUsages.length === 0) {return 0;}
     
     return poolUsages.reduce((sum, usage) => sum + usage, 0) / poolUsages.length;
   }
