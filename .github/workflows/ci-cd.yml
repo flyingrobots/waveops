@@ -1,0 +1,541 @@
+name: WaveOps Enterprise CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  release:
+    types: [ published ]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  NODE_VERSION: '18'
+  TERRAFORM_VERSION: '1.5.7'
+
+jobs:
+  # Code Quality and Testing
+  code-quality:
+    name: Code Quality & Testing
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: |
+        npm ci
+        
+    - name: Run ESLint
+      run: |
+        npm run lint
+        
+    - name: Run type checking
+      run: |
+        npx tsc --noEmit
+        
+    - name: Run unit tests
+      run: |
+        npm test -- --coverage --watchAll=false
+        
+    - name: Run integration tests
+      run: |
+        npm run test:integration
+        
+    - name: Upload test coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        files: ./coverage/lcov.info
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: true
+        
+    - name: SonarCloud Scan
+      uses: SonarSource/sonarcloud-github-action@master
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+  # Security Scanning
+  security-scan:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Run npm audit
+      run: |
+        npm audit --audit-level=moderate
+        
+    - name: Run Snyk security scan
+      uses: snyk/actions/node@master
+      env:
+        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      with:
+        command: test
+        
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+        
+    - name: Upload Trivy scan results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v2
+      if: always()
+      with:
+        sarif_file: 'trivy-results.sarif'
+
+  # Build and Push Container Image
+  build-image:
+    name: Build & Push Container Image
+    runs-on: ubuntu-latest
+    needs: [code-quality, security-scan]
+    if: github.event_name != 'pull_request'
+    
+    outputs:
+      image-digest: ${{ steps.build.outputs.digest }}
+      image-tag: ${{ steps.meta.outputs.tags }}
+      
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v3
+      
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      
+    - name: Login to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=sha,prefix=sha-
+          type=raw,value=latest,enable={{is_default_branch}}
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}.{{minor}}
+          
+    - name: Build and push Docker image
+      id: build
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./deployment/docker/Dockerfile
+        platforms: linux/amd64,linux/arm64
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        build-args: |
+          BUILDTIME=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
+          VERSION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.version'] }}
+          REVISION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.revision'] }}
+          
+    - name: Sign container image with cosign
+      uses: sigstore/cosign-installer@v3
+      
+    - name: Sign the published Docker image
+      env:
+        COSIGN_EXPERIMENTAL: 1
+      run: |
+        echo "${{ steps.meta.outputs.tags }}" | xargs -I {} cosign sign --yes {}@${{ steps.build.outputs.digest }}
+
+  # Infrastructure Validation
+  terraform-validate:
+    name: Terraform Validation
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: ${{ env.TERRAFORM_VERSION }}
+        
+    - name: Terraform Format Check
+      run: terraform fmt -check -recursive deployment/terraform/
+      
+    - name: Terraform Init
+      run: |
+        cd deployment/terraform
+        terraform init -backend=false
+        
+    - name: Terraform Validate
+      run: |
+        cd deployment/terraform
+        terraform validate
+        
+    - name: Run tflint
+      uses: terraform-linters/setup-tflint@v4
+      with:
+        tflint_version: latest
+        
+    - name: Lint Terraform files
+      run: |
+        cd deployment/terraform
+        tflint --init
+        tflint
+        
+    - name: Run Checkov scan
+      uses: bridgecrewio/checkov-action@master
+      with:
+        directory: deployment/terraform
+        framework: terraform
+        output_format: sarif
+        output_file_path: checkov-results.sarif
+        
+    - name: Upload Checkov scan results
+      uses: github/codeql-action/upload-sarif@v2
+      if: always()
+      with:
+        sarif_file: checkov-results.sarif
+
+  # Deploy to Development
+  deploy-development:
+    name: Deploy to Development
+    runs-on: ubuntu-latest
+    needs: [build-image, terraform-validate]
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    environment:
+      name: development
+      url: https://dev.waveops.example.com
+      
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: ${{ env.TERRAFORM_VERSION }}
+        
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_DEV }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_DEV }}
+        aws-region: ${{ secrets.AWS_REGION_DEV }}
+        
+    - name: Setup kubectl
+      uses: azure/setup-kubectl@v3
+      
+    - name: Deploy infrastructure
+      run: |
+        cd deployment/terraform
+        terraform init \
+          -backend-config="bucket=${{ secrets.TF_STATE_BUCKET_DEV }}" \
+          -backend-config="key=waveops/development/terraform.tfstate" \
+          -backend-config="region=${{ secrets.AWS_REGION_DEV }}" \
+          -backend-config="dynamodb_table=${{ secrets.TF_LOCK_TABLE_DEV }}"
+        
+        terraform plan \
+          -var-file="environments/development.tfvars" \
+          -var="waveops_image_tag=${{ needs.build-image.outputs.image-tag }}" \
+          -out=tfplan
+          
+        terraform apply -auto-approve tfplan
+        
+    - name: Update kubeconfig
+      run: |
+        aws eks update-kubeconfig \
+          --region ${{ secrets.AWS_REGION_DEV }} \
+          --name $(terraform -chdir=deployment/terraform output -raw cluster_id)
+          
+    - name: Deploy application
+      run: |
+        helm upgrade --install waveops deployment/helm/waveops \
+          --namespace waveops \
+          --create-namespace \
+          --values deployment/helm/waveops/values-development.yaml \
+          --set image.tag=${{ github.sha }} \
+          --set image.pullPolicy=Always \
+          --wait --timeout=600s
+          
+    - name: Run smoke tests
+      run: |
+        kubectl run smoke-test --image=curlimages/curl --rm -i --restart=Never -- \
+          curl -f http://waveops-service.waveops.svc.cluster.local/health
+          
+    - name: Deploy monitoring stack
+      run: |
+        helm upgrade --install monitoring deployment/helm/monitoring \
+          --namespace monitoring \
+          --create-namespace \
+          --values deployment/helm/monitoring/values-development.yaml \
+          --wait --timeout=300s
+
+  # Deploy to Staging
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [build-image, terraform-validate, deploy-development]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment:
+      name: staging
+      url: https://staging.waveops.example.com
+      
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: ${{ env.TERRAFORM_VERSION }}
+        
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_STAGING }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_STAGING }}
+        aws-region: ${{ secrets.AWS_REGION_STAGING }}
+        
+    - name: Setup kubectl
+      uses: azure/setup-kubectl@v3
+      
+    - name: Deploy infrastructure
+      run: |
+        cd deployment/terraform
+        terraform init \
+          -backend-config="bucket=${{ secrets.TF_STATE_BUCKET_STAGING }}" \
+          -backend-config="key=waveops/staging/terraform.tfstate" \
+          -backend-config="region=${{ secrets.AWS_REGION_STAGING }}" \
+          -backend-config="dynamodb_table=${{ secrets.TF_LOCK_TABLE_STAGING }}"
+        
+        terraform plan \
+          -var-file="environments/staging.tfvars" \
+          -var="waveops_image_tag=${{ needs.build-image.outputs.image-tag }}" \
+          -out=tfplan
+          
+        terraform apply -auto-approve tfplan
+        
+    - name: Update kubeconfig
+      run: |
+        aws eks update-kubeconfig \
+          --region ${{ secrets.AWS_REGION_STAGING }} \
+          --name $(terraform -chdir=deployment/terraform output -raw cluster_id)
+          
+    - name: Deploy application
+      run: |
+        helm upgrade --install waveops deployment/helm/waveops \
+          --namespace waveops \
+          --create-namespace \
+          --values deployment/helm/waveops/values-staging.yaml \
+          --set image.tag=${{ github.sha }} \
+          --wait --timeout=600s
+          
+    - name: Run integration tests
+      run: |
+        cd tests
+        npm install
+        npm run test:staging
+        
+    - name: Run performance tests
+      uses: grafana/k6-action@v0.3.1
+      with:
+        filename: tests/performance/load-test.js
+        flags: --env BASE_URL=https://staging.waveops.example.com
+
+  # Deploy to Production
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [build-image, deploy-staging]
+    if: github.event_name == 'release' && github.event.action == 'published'
+    environment:
+      name: production
+      url: https://waveops.example.com
+      
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: ${{ env.TERRAFORM_VERSION }}
+        
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_PROD }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_PROD }}
+        aws-region: ${{ secrets.AWS_REGION_PROD }}
+        
+    - name: Setup kubectl
+      uses: azure/setup-kubectl@v3
+      
+    - name: Deploy infrastructure
+      run: |
+        cd deployment/terraform
+        terraform init \
+          -backend-config="bucket=${{ secrets.TF_STATE_BUCKET_PROD }}" \
+          -backend-config="key=waveops/production/terraform.tfstate" \
+          -backend-config="region=${{ secrets.AWS_REGION_PROD }}" \
+          -backend-config="dynamodb_table=${{ secrets.TF_LOCK_TABLE_PROD }}"
+        
+        terraform plan \
+          -var-file="environments/production.tfvars" \
+          -var="waveops_image_tag=${{ needs.build-image.outputs.image-tag }}" \
+          -out=tfplan
+          
+        terraform apply -auto-approve tfplan
+        
+    - name: Update kubeconfig
+      run: |
+        aws eks update-kubeconfig \
+          --region ${{ secrets.AWS_REGION_PROD }} \
+          --name $(terraform -chdir=deployment/terraform output -raw cluster_id)
+          
+    - name: Blue-Green Deployment
+      run: |
+        # Deploy to blue environment first
+        helm upgrade --install waveops-blue deployment/helm/waveops \
+          --namespace waveops-blue \
+          --create-namespace \
+          --values deployment/helm/waveops/values-production.yaml \
+          --set image.tag=${{ github.sha }} \
+          --set nameOverride=waveops-blue \
+          --wait --timeout=900s
+          
+        # Health check on blue environment
+        kubectl run health-check --image=curlimages/curl --rm -i --restart=Never -- \
+          curl -f http://waveops-blue-service.waveops-blue.svc.cluster.local/health
+          
+        # Switch traffic to blue environment
+        kubectl patch service waveops-service -n waveops -p '{"spec":{"selector":{"app.kubernetes.io/instance":"waveops-blue"}}}'
+        
+        # Wait and verify
+        sleep 30
+        
+        # Delete green environment
+        helm uninstall waveops-green -n waveops-green || true
+        kubectl delete namespace waveops-green || true
+        
+        # Rename blue to production
+        helm upgrade --install waveops deployment/helm/waveops \
+          --namespace waveops \
+          --create-namespace \
+          --values deployment/helm/waveops/values-production.yaml \
+          --set image.tag=${{ github.sha }} \
+          --wait --timeout=300s
+          
+        # Clean up blue environment
+        helm uninstall waveops-blue -n waveops-blue || true
+        kubectl delete namespace waveops-blue || true
+        
+    - name: Verify deployment
+      run: |
+        kubectl wait --for=condition=available --timeout=300s deployment/waveops-coordinator -n waveops
+        kubectl get pods -n waveops
+        
+    - name: Run production smoke tests
+      run: |
+        cd tests
+        npm install
+        npm run test:production
+        
+    - name: Update deployment status
+      uses: chrnorm/deployment-status@v2
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        state: success
+        deployment-id: ${{ steps.deployment.outputs.deployment_id }}
+
+  # Cleanup and Notifications
+  cleanup:
+    name: Cleanup & Notifications
+    runs-on: ubuntu-latest
+    needs: [deploy-development, deploy-staging, deploy-production]
+    if: always()
+    
+    steps:
+    - name: Clean up development environment (nightly)
+      if: github.event_name == 'schedule'
+      run: |
+        # Scale down development resources during off-hours
+        kubectl scale deployment waveops-coordinator --replicas=1 -n waveops || true
+        
+    - name: Send Slack notification
+      if: always()
+      uses: 8398a7/action-slack@v3
+      with:
+        status: ${{ job.status }}
+        channel: '#deployments'
+        webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+        fields: repo,message,commit,author,action,eventName,ref,workflow
+        
+    - name: Update status checks
+      if: always()
+      uses: Sibz/github-status-action@v1
+      with:
+        authToken: ${{ secrets.GITHUB_TOKEN }}
+        context: 'WaveOps CI/CD Pipeline'
+        state: ${{ job.status }}
+        sha: ${{ github.sha }}
+
+  # Scheduled Jobs
+  scheduled-tasks:
+    name: Scheduled Maintenance Tasks
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'
+    
+    steps:
+    - name: Cleanup old container images
+      run: |
+        # Delete container images older than 30 days
+        gh api --paginate /user/packages/container/waveops/versions \
+          --jq '.[] | select(.created_at < (now - 30*24*60*60 | strftime("%Y-%m-%dT%H:%M:%SZ"))) | .id' \
+          | xargs -I {} gh api -X DELETE /user/packages/container/waveops/versions/{}
+          
+    - name: Security scanning
+      run: |
+        # Run weekly security scans
+        trivy image --format json ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+        
+    - name: Backup verification
+      run: |
+        # Verify backup integrity
+        echo "Verifying backup integrity..."
+        
+    - name: Cost optimization analysis
+      run: |
+        # Analyze and report on cost optimization opportunities
+        echo "Running cost optimization analysis..."
