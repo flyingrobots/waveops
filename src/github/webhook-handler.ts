@@ -73,7 +73,7 @@ export class WebhookHandler {
 
     const parts = body.split(/\s+/);
     const command = parts[0].substring(1); // Remove leading slash
-    const args: Record<string, any> = {};
+    const args: Record<string, string | number> = {};
 
     // Parse common command patterns
     switch (command) {
@@ -83,13 +83,14 @@ export class WebhookHandler {
         }
         break;
         
-      case 'blocked':
+      case 'blocked': {
         // Parse reason:"..." format
         const reasonMatch = body.match(/reason:"([^"]+)"/);
         if (reasonMatch) {
           args.reason = reasonMatch[1];
         }
         break;
+      }
         
       case 'claim':
         if (parts[1]) {
@@ -124,7 +125,7 @@ export class WebhookHandler {
   /**
    * Validate webhook event authenticity (placeholder for signature validation)
    */
-  static validateWebhook(payload: string, signature: string, secret: string): boolean {
+  static validateWebhook(_payload: string, _signature: string, _secret: string): boolean {
     // In a real implementation, this would validate the GitHub webhook signature
     // For simulation purposes, we'll return true
     return true;

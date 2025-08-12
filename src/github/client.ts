@@ -188,7 +188,7 @@ export class GitHubClient {
   /**
    * Get pull request that closed an issue
    */
-  async getClosingPullRequest(issueNumber: number): Promise<GitHubPullRequest | null> {
+  async getClosingPullRequest(_issueNumber: number): Promise<GitHubPullRequest | null> {
     // Simplified implementation - in real implementation this would use GraphQL
     // For now, return null to indicate no closing PR found
     return null;
