@@ -202,4 +202,53 @@ export class WebhookHandler {
     // For other events, check if they relate to coordination
     return false;
   }
+
+  /**
+   * Parse natural language command from comment (enhanced version)
+   */
+  static parseNaturalLanguageCommand(event: WebhookEvent): NaturalLanguageCommand | null {
+    if (!event.comment || !event.issue) {
+      return null;
+    }
+
+    const body = event.comment.body.trim();
+    const actor = event.sender.login;
+    const issueNumber = event.issue.number;
+
+    // Skip if it's a traditional slash command (let existing parser handle it)
+    if (body.startsWith('/')) {
+      return null;
+    }
+
+    // Check if it contains coordination keywords
+    const coordinationKeywords = [
+      'start', 'begin', 'launch', 'assign', 'give', 'allocate', 'block', 'wait', 'depend',
+      'sync', 'synchronize', 'coordinate', 'balance', 'distribute', 'reassign', 'move',
+      'transfer', 'wave', 'team', 'teams', 'task', 'tasks', 'priority', 'high', 'low',
+      'critical', 'completion', 'deployment', 'ready'
+    ];
+
+    const bodyLower = body.toLowerCase();
+    const hasCoordinationKeyword = coordinationKeywords.some(keyword => 
+      bodyLower.includes(keyword)
+    );
+
+    if (!hasCoordinationKeyword) {
+      return null;
+    }
+
+    return {
+      text: body,
+      actor,
+      issueNumber,
+      timestamp: new Date()
+    };
+  }
+}
+
+export interface NaturalLanguageCommand {
+  text: string;
+  actor: string;
+  issueNumber: number;
+  timestamp: Date;
 }

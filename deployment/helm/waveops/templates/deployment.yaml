@@ -1,0 +1,211 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "waveops.fullname" . }}-coordinator
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "waveops.labels" . | nindent 4 }}
+    app.kubernetes.io/component: coordinator
+  {{- with .Values.waveops.podAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if not .Values.waveops.autoscaling.enabled }}
+  replicas: {{ .Values.waveops.replicaCount }}
+  {{- end }}
+  {{- with .Values.waveops.strategy }}
+  strategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  revisionHistoryLimit: {{ .Values.waveops.revisionHistoryLimit }}
+  selector:
+    matchLabels:
+      {{- include "waveops.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: coordinator
+  template:
+    metadata:
+      labels:
+        {{- include "waveops.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: coordinator
+        {{- with .Values.waveops.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        {{- with .Values.waveops.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.waveops.image.pullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "waveops.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.waveops.podSecurityContext | nindent 8 }}
+      terminationGracePeriodSeconds: 60
+      {{- if .Values.migration.enabled }}
+      initContainers:
+        - name: database-migration
+          image: {{ .Values.migration.image.repository }}:{{ .Values.migration.image.tag }}
+          command: ["node", "dist/cli/migrate.js"]
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "waveops.secretName" . }}
+                  key: database-url
+            - name: NODE_ENV
+              value: {{ .Values.config.app.nodeEnv }}
+          resources:
+            {{- toYaml .Values.migration.resources | nindent 12 }}
+      {{- end }}
+      containers:
+        - name: waveops-coordinator
+          image: {{ include "waveops.image" . }}
+          imagePullPolicy: {{ .Values.waveops.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.config.app.port }}
+              protocol: TCP
+            - name: metrics
+              containerPort: 9090
+              protocol: TCP
+          env:
+            - name: NODE_ENV
+              value: {{ .Values.config.app.nodeEnv }}
+            - name: WAVEOPS_LOG_LEVEL
+              value: {{ .Values.config.app.logLevel }}
+            - name: WAVEOPS_PORT
+              value: {{ .Values.config.app.port | quote }}
+            - name: WAVEOPS_INSTANCE_ID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: WAVEOPS_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: WAVEOPS_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: WAVEOPS_POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "waveops.secretName" . }}
+                  key: database-url
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "waveops.secretName" . }}
+                  key: redis-url
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "waveops.secretName" . }}
+                  key: github-token
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "waveops.secretName" . }}
+                  key: jwt-secret
+            - name: ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "waveops.secretName" . }}
+                  key: encryption-key
+            - name: WAVEOPS_HA_ENABLED
+              value: {{ .Values.config.highAvailability.enabled | quote }}
+            {{- if .Values.config.highAvailability.leaderElection.enabled }}
+            - name: WAVEOPS_LEADER_ELECTION_ENABLED
+              value: "true"
+            - name: WAVEOPS_LEADER_ELECTION_LOCK_NAME
+              value: {{ .Values.config.highAvailability.leaderElection.lockName }}
+            - name: WAVEOPS_LEADER_ELECTION_NAMESPACE
+              value: {{ .Release.Namespace }}
+            - name: WAVEOPS_LEADER_ELECTION_LEASE_DURATION
+              value: {{ .Values.config.highAvailability.leaderElection.leaseDurationSeconds | quote }}
+            - name: WAVEOPS_LEADER_ELECTION_RENEW_DEADLINE
+              value: {{ .Values.config.highAvailability.leaderElection.renewDeadlineSeconds | quote }}
+            - name: WAVEOPS_LEADER_ELECTION_RETRY_PERIOD
+              value: {{ .Values.config.highAvailability.leaderElection.retryPeriodSeconds | quote }}
+            {{- end }}
+            - name: WAVEOPS_MULTI_REPO_ENABLED
+              value: {{ .Values.config.multiRepository.enabled | quote }}
+            - name: WAVEOPS_MAX_REPOSITORIES
+              value: {{ .Values.config.multiRepository.maxRepositories | quote }}
+            - name: WAVEOPS_AUTOSCALING_ENABLED
+              value: {{ .Values.config.autoScaling.enabled | quote }}
+            - name: WAVEOPS_TARGET_CONCURRENT_WAVES
+              value: {{ .Values.config.autoScaling.targetConcurrentWaves | quote }}
+            - name: WAVEOPS_METRICS_ENABLED
+              value: "true"
+            - name: WAVEOPS_TRACING_ENABLED
+              value: {{ .Values.tracing.jaeger.enabled | quote }}
+            {{- if .Values.otelCollector.enabled }}
+            - name: WAVEOPS_OBSERVABILITY_OTLP_ENDPOINT
+              value: "http://{{ include "waveops.fullname" . }}-otel-collector:4317"
+            {{- end }}
+            {{- with .Values.waveops.env }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- with .Values.waveops.envFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: config
+              mountPath: /app/config
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+            - name: logs
+              mountPath: /app/logs
+            {{- with .Values.waveops.volumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          livenessProbe:
+            {{- toYaml .Values.waveops.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.waveops.readinessProbe | nindent 12 }}
+          startupProbe:
+            {{- toYaml .Values.waveops.startupProbe | nindent 12 }}
+          resources:
+            {{- toYaml .Values.waveops.resources | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.waveops.securityContext | nindent 12 }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "waveops.fullname" . }}-config
+        - name: tmp
+          emptyDir: {}
+        - name: logs
+          emptyDir:
+            sizeLimit: 1Gi
+        {{- with .Values.waveops.volumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.waveops.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.waveops.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.waveops.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
