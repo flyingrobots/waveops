@@ -107,10 +107,8 @@ export class PerformanceCoordinator extends EventEmitter {
 
     try {
       // Initialize systems in dependency order
-      await this.resourceManager.start?.() || Promise.resolve();
-      await this.memoryManager.start?.() || Promise.resolve();
-      await this.cacheManager.start?.() || Promise.resolve();
-      await this.networkOptimizer.start?.() || Promise.resolve();
+      // Resource managers don't require explicit start calls
+      await Promise.resolve();
       await this.queueManager.start();
       await this.performanceMonitor.start();
 

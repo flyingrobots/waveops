@@ -6,7 +6,7 @@ import { EventEmitter } from 'events';
 import { ConnectionPoolConfig } from '../types';
 import { ConnectionPoolMetrics } from './resource-manager';
 
-interface DatabaseConnection {
+export interface DatabaseConnection {
   id: string;
   created: Date;
   lastUsed: Date;
@@ -71,7 +71,7 @@ export class DatabaseConnectionPool extends EventEmitter {
     if (this.isInitialized) {return;}
 
     // Create minimum connections
-    const createPromises: Promise<void>[] = [];
+    const createPromises: Promise<DatabaseConnection>[] = [];
     for (let i = 0; i < this.config.minConnections; i++) {
       createPromises.push(this.createConnection());
     }

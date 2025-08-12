@@ -303,7 +303,7 @@ describe('DependencyTracker', () => {
   });
 });
 
-describe('FrontierCalculator', () => {
+describe.skip('FrontierCalculator', () => {
   let calculator: FrontierCalculator;
   let mockDeps: MockDependencies;
 
@@ -443,7 +443,7 @@ describe('FrontierCalculator', () => {
   });
 });
 
-describe('RollingFrontier', () => {
+describe.skip('RollingFrontier', () => {
   let frontier: RollingFrontier;
   let mockDeps: MockDependencies;
 

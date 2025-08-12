@@ -273,22 +273,22 @@ export class CommandDispatcher implements ICommandDispatcher {
     // 4. Update GitHub issue
 
     return {
-      command,
+      command: _command,
       success: true,
       message: 'Wave started successfully',
       actions: [{
         type: 'wave_start',
-        target: `wave-${context.currentWave}`,
-        details: { teams: (command.parameters as any).teams }
+        target: `wave-${_context.currentWave}`,
+        details: { teams: (_command.parameters as any).teams }
       }]
     };
   }
 
   private async executeTeamAssign(_command: ParsedCommand, _context: CommandContext): Promise<CommandExecutionResult> {
-    const params = command.parameters as any;
+    const params = _command.parameters as any;
     
     return {
-      command,
+      command: _command,
       success: true,
       message: `Assigned teams ${params.teams.join(', ')} to tasks ${params.tasks.join(', ')}`,
       actions: [{
@@ -300,10 +300,10 @@ export class CommandDispatcher implements ICommandDispatcher {
   }
 
   private async executeTaskAssign(_command: ParsedCommand, _context: CommandContext): Promise<CommandExecutionResult> {
-    const params = command.parameters as any;
+    const params = _command.parameters as any;
     
     return {
-      command,
+      command: _command,
       success: true,
       message: `Reassigned task ${params.taskId} to team ${params.team}`,
       actions: [{
@@ -315,10 +315,10 @@ export class CommandDispatcher implements ICommandDispatcher {
   }
 
   private async executeTeamBlock(_command: ParsedCommand, _context: CommandContext): Promise<CommandExecutionResult> {
-    const params = command.parameters as any;
+    const params = _command.parameters as any;
     
     return {
-      command,
+      command: _command,
       success: true,
       message: `Blocked team ${params.blockedTeam} on team ${params.blockingTeam} ${params.condition}`,
       actions: [{
@@ -330,10 +330,10 @@ export class CommandDispatcher implements ICommandDispatcher {
   }
 
   private async executeTeamSync(_command: ParsedCommand, _context: CommandContext): Promise<CommandExecutionResult> {
-    const params = command.parameters as any;
+    const params = _command.parameters as any;
     
     return {
-      command,
+      command: _command,
       success: true,
       message: `Synchronized teams ${params.teams.join(', ')} on ${params.condition}`,
       actions: [{
@@ -345,10 +345,10 @@ export class CommandDispatcher implements ICommandDispatcher {
   }
 
   private async executeLoadBalance(_command: ParsedCommand, _context: CommandContext): Promise<CommandExecutionResult> {
-    const params = command.parameters as any;
+    const params = _command.parameters as any;
     
     return {
-      command,
+      command: _command,
       success: true,
       message: `Load balanced across teams ${params.teams.join(', ')} using ${params.strategy} strategy`,
       actions: [{
@@ -360,19 +360,19 @@ export class CommandDispatcher implements ICommandDispatcher {
   }
 
   private async executeBatchOperation(_command: ParsedCommand, _context: CommandContext): Promise<CommandExecutionResult> {
-    const params = command.parameters as { commands: ParsedCommand[] };
+    const params = _command.parameters as { commands: ParsedCommand[] };
     const results: CommandExecutionResult[] = [];
     
     // Execute each command in sequence
     for (const subCommand of params.commands) {
-      const result = await this.executeCommand(subCommand, context);
+      const result = await this.executeCommand(subCommand, _context);
       results.push(result);
     }
 
     const successfulCount = results.filter(r => r.success).length;
     
     return {
-      command,
+      command: _command,
       success: successfulCount > 0,
       message: `Batch operation completed: ${successfulCount}/${results.length} commands successful`,
       actions: results.flatMap(r => r.actions || [])
