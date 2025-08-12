@@ -65,7 +65,7 @@ describe('GitHubClient', () => {
 
   it('should handle error cases gracefully', async () => {
     // Test validates error wrapping without making actual API calls
-    const createDeploymentSpy = jest.spyOn(client, 'createDeployment')
+    jest.spyOn(client, 'createDeployment')
       .mockRejectedValue(new Error('Failed to create deployment: API Error'));
 
     await expect(

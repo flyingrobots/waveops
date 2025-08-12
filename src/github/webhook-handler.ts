@@ -125,7 +125,7 @@ export class WebhookHandler {
   /**
    * Validate webhook event authenticity (placeholder for signature validation)
    */
-  static validateWebhook(_payload: string, _signature: string, _secret: string): boolean {
+  static validateWebhook(): boolean {
     // In a real implementation, this would validate the GitHub webhook signature
     // For simulation purposes, we'll return true
     return true;

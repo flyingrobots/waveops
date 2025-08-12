@@ -188,7 +188,7 @@ export class GitHubClient {
   /**
    * Get pull request that closed an issue
    */
-  async getClosingPullRequest(_issueNumber: number): Promise<GitHubPullRequest | null> {
+  async getClosingPullRequest(): Promise<GitHubPullRequest | null> {
     // Simplified implementation - in real implementation this would use GraphQL
     // For now, return null to indicate no closing PR found
     return null;
@@ -197,7 +197,7 @@ export class GitHubClient {
   /**
    * Get commit status checks
    */
-  async getCommitChecks(_sha: string): Promise<GitHubCommitChecks> {
+  async getCommitChecks(): Promise<GitHubCommitChecks> {
     // Simplified implementation for simulation
     return {
       statuses: [],
@@ -226,7 +226,7 @@ export class GitHubClient {
           repo: this.repo,
           per_page: 1
         });
-      } catch (_error) {
+      } catch {
         missing.push('issues:read');
       }
 
@@ -237,7 +237,7 @@ export class GitHubClient {
           repo: this.repo,
           per_page: 1
         });
-      } catch (_error) {
+      } catch {
         missing.push('deployments:write');
       }
 
@@ -249,12 +249,12 @@ export class GitHubClient {
           ref: 'main',
           per_page: 1
         });
-      } catch (_error) {
+      } catch {
         missing.push('checks:write');
       }
 
       return { valid: missing.length === 0, missing };
-    } catch (_error) {
+    } catch {
       return { valid: false, missing: ['basic repository access'] };
     }
   }
