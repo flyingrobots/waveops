@@ -1,0 +1,51 @@
+name: wave-coordinator
+on:
+  issue_comment:
+    types: [created]
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+  checks: write
+  deployments: write
+jobs:
+  handle:
+    if: github.event.issue && contains(github.event.issue.title, 'Wave ') && contains(github.event.issue.title, 'Coordination')
+    runs-on: ubuntu-latest
+    concurrency: 
+      group: wave-coordinator
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+      - run: npm ci
+      - name: Run WaveOps Coordinator
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // This would be the actual WaveOps coordinator implementation
+            // For now, just log that we received the command
+            const comment = context.payload.comment.body.trim();
+            const actor = context.payload.comment.user.login;
+            const issueNumber = context.payload.issue.number;
+            
+            console.log(`WaveOps: Processing command "${comment}" from ${actor} on issue #${issueNumber}`);
+            
+            // In real implementation:
+            // 1. Parse command → auth → validate → deployments → update pinned JSON → gate check
+            // 2. Load tasks.yaml and teams.yaml  
+            // 3. Validate team membership
+            // 4. Run task validation (PRs merged with CI green)
+            // 5. Update deployments and JSON state
+            // 6. Check for wave gate conditions
+            
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber,
+              body: `🤖 **WaveBot**: Received command \`${comment}\` from @${actor}\n\n(This is a placeholder - full coordinator implementation in progress)`
+            });

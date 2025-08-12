@@ -1,0 +1,15 @@
+# Global code ownership
+* @flyingrobots
+
+# Core WaveOps components require extra review
+/src/core/ @flyingrobots
+/src/github/ @flyingrobots  
+/src/validation/ @flyingrobots
+
+# Configuration files require review
+/wave/ @flyingrobots
+/schemas/ @flyingrobots
+/.github/ @flyingrobots
+/package.json @flyingrobots
+/tsconfig.json @flyingrobots
+/eslint.config.js @flyingrobots

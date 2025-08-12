@@ -1,0 +1,53 @@
+name: Quality Gate
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  quality-checks:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Use Node.js 20.x
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20.x
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Type check
+      run: npm run build
+      
+    - name: Lint with zero tolerance
+      run: npm run lint
+      
+    - name: Run all tests
+      run: npm run test -- --coverage --passWithNoTests
+      
+    - name: Check test coverage
+      run: |
+        COVERAGE=$(npm run test -- --coverage --silent --passWithNoTests | grep "All files" | awk '{print $10}' | sed 's/%//')
+        if [ "$COVERAGE" -lt "80" ]; then
+          echo "❌ Test coverage is $COVERAGE% - minimum 80% required"
+          exit 1
+        else
+          echo "✅ Test coverage is $COVERAGE% - meets requirement"
+        fi
+      
+    - name: Security audit
+      run: npm audit --audit-level=moderate
+      
+    - name: Check for TODOs in production code
+      run: |
+        if grep -r "TODO\|FIXME\|XXX" src/ --exclude-dir=node_modules; then
+          echo "❌ Found TODO/FIXME/XXX in production code - clean up before merging"
+          exit 1
+        else
+          echo "✅ No TODOs found in production code"
+        fi
