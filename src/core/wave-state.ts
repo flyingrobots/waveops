@@ -68,24 +68,29 @@ export class WaveStateManager {
    */
   toJSON(): string {
     // Custom replacer to ensure stable ordering
-    const replacer = (key: string, value: any) => {
+    const replacer = (key: string, value: unknown): unknown => {
       if (value && typeof value === 'object' && !Array.isArray(value)) {
-        const ordered: any = {};
+        const ordered: Record<string, unknown> = {};
+        const valueObj = value as Record<string, unknown>;
         // Define key order for different object types
-        if ('plan' in value) {
+        if ('plan' in valueObj) {
           // Root state object
           ['plan', 'wave', 'tz', 'teams', 'all_ready', 'updated_at'].forEach(k => {
-            if (k in value) ordered[k] = value[k];
+            if (k in valueObj) {
+              ordered[k] = valueObj[k];
+            }
           });
-        } else if ('status' in value) {
+        } else if ('status' in valueObj) {
           // Team state object
           ['status', 'at', 'reason', 'tasks'].forEach(k => {
-            if (k in value) ordered[k] = value[k];
+            if (k in valueObj) {
+              ordered[k] = valueObj[k];
+            }
           });
         } else {
           // Default: sort keys alphabetically
-          Object.keys(value).sort().forEach(k => {
-            ordered[k] = value[k];
+          Object.keys(valueObj).sort().forEach(k => {
+            ordered[k] = valueObj[k];
           });
         }
         return ordered;
