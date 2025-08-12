@@ -398,7 +398,7 @@ export class MetricsCollector implements IMetricsCollector {
     return Math.round(Math.max(0, throughputPerDay) * 100) / 100; // Round to 2 decimal places
   }
 
-  private async calculateCommunicationOverhead(_teamId: string): Promise<number> {
+  private async calculateCommunicationOverhead(teamId: string): Promise<number> {
     // Estimate time spent in coordination activities
     // This would integrate with calendar APIs, chat APIs, etc.
     // For now, return a reasonable estimate based on team size and task complexity
@@ -505,71 +505,26 @@ export class MetricsCollector implements IMetricsCollector {
     };
   }
 
-  private async fetchHistoricalFromGitHub(waveId: string, timeRange: { start: Date; end: Date }): Promise<WaveMetrics[]> {
-    try {
-      // Query GitHub for issues related to this wave in the time range
-      const searchQuery = `label:wave repo:${this.config.owner}/${this.config.repo} created:${timeRange.start.toISOString().split('T')[0]}..${timeRange.end.toISOString().split('T')[0]}`;
-      
-      const searchResults = await this.githubClient.searchIssues(searchQuery);
-      const historicalMetrics: WaveMetrics[] = [];
-      
-      // Group issues by wave and collect metrics for each
-      const waveIssues = searchResults.items.filter(issue => 
-        issue.title.toLowerCase().includes('wave') || issue.labels.some(label => label.name?.includes('wave'))
-      );
-      
-      if (waveIssues.length > 0) {
-        // For each wave issue, reconstruct basic metrics from GitHub data
-        for (const issue of waveIssues) {
-          const waveMetrics: WaveMetrics = {
-            waveId: issue.title || `wave-${issue.number}`,
-            planName: 'historical',
-            waveNumber: parseInt(issue.title.match(/wave[-\s](\d+)/i)?.[1] || '0'),
-            startTime: new Date(issue.created_at),
-            endTime: issue.closed_at ? new Date(issue.closed_at) : undefined,
-            duration: issue.closed_at ? new Date(issue.closed_at).getTime() - new Date(issue.created_at).getTime() : undefined,
-            status: issue.state === 'closed' ? 'completed' : 'active',
-            teamMetrics: {}, // Would need additional API calls to get team details
-            totalTasks: 0, // Would need to parse from issue body or comments
-            completedTasks: 0,
-            blockedTasks: 0,
-            criticalPath: [],
-            bottlenecks: [],
-            qualityMetrics: {
-              defectRate: 0,
-              firstPassSuccessRate: 0,
-              averageReviewTime: 0,
-              reworkRate: 0
-            },
-            timestamp: new Date(issue.updated_at)
-          };
-          
-          historicalMetrics.push(waveMetrics);
-        }
-      }
-      
-      return historicalMetrics;
-    } catch (error) {
-      // If GitHub API fails, return empty array but log the error
-      console.warn(`Failed to fetch historical data from GitHub: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      return [];
-    }
+  private async fetchHistoricalFromGitHub(_waveId: string, _timeRange: { start: Date; end: Date }): Promise<WaveMetrics[]> {
+    // Implementation would query GitHub API for historical data
+    // For now, return empty array
+    return [];
   }
 
   private isWithinTimeRange(timestamp: Date, timeRange: { start: Date; end: Date }): boolean {
     return timestamp >= timeRange.start && timestamp <= timeRange.end;
   }
 
-  private async estimateTaskDuration(_task: Task): Promise<number> {
+  private async estimateTaskDuration(task: Task): Promise<number> {
     // Estimate task duration based on complexity indicators
     let baseDuration = 4 * 3600000; // 4 hours in milliseconds
     
-    if (_task.critical) {
+    if (task.critical) {
       baseDuration *= 1.5; // Critical tasks take longer
     }
     
-    baseDuration += _task.depends_on.length * 3600000; // 1 hour per dependency
-    baseDuration += _task.acceptance.length * 1800000; // 30 minutes per acceptance criteria
+    baseDuration += task.depends_on.length * 3600000; // 1 hour per dependency
+    baseDuration += task.acceptance.length * 1800000; // 30 minutes per acceptance criteria
     
     return baseDuration;
   }

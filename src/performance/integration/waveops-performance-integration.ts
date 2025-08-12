@@ -275,6 +275,7 @@ export class WaveOpsPerformanceIntegration extends EventEmitter {
             name: 'wave-coordination',
             type: 1, // PRIORITY
             maxSize: 5000,
+            maxConcurrency: 10,
             priority: 3, // CRITICAL
             deadLetterQueue: true,
             retryPolicy: {
@@ -295,6 +296,7 @@ export class WaveOpsPerformanceIntegration extends EventEmitter {
             name: 'metrics-processing',
             type: 0, // FIFO
             maxSize: 10000,
+            maxConcurrency: 8,
             priority: 1, // MEDIUM
             deadLetterQueue: true,
             retryPolicy: {

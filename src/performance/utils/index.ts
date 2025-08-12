@@ -246,6 +246,7 @@ export function createDefaultPerformanceConfig(): import('../performance-coordin
           name: 'coordination',
           type: 1, // PRIORITY
           maxSize: 10000,
+          maxConcurrency: 5,
           priority: 2, // HIGH
           deadLetterQueue: true,
           retryPolicy: {
@@ -266,6 +267,7 @@ export function createDefaultPerformanceConfig(): import('../performance-coordin
           name: 'analytics',
           type: 0, // FIFO
           maxSize: 50000,
+          maxConcurrency: 3,
           priority: 1, // MEDIUM
           deadLetterQueue: true,
           retryPolicy: {
