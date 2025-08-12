@@ -486,7 +486,7 @@ export class PerformanceAnalyzer implements IPerformanceAnalyzer {
     return factors;
   }
 
-  private async calculateCriticalPathDuration(_tasks: Task[], _waveMetrics: WaveMetrics): Promise<number> {
+  private async calculateCriticalPathDuration(tasks: Task[], waveMetrics: WaveMetrics): Promise<number> {
     // Simplified critical path calculation
     const criticalTasks = tasks.filter(task => waveMetrics.criticalPath.includes(task.id));
     
@@ -599,7 +599,7 @@ export class PerformanceAnalyzer implements IPerformanceAnalyzer {
     }
   }
 
-  private calculateOptimalStartTime(_estimatedCompletion: Date, _riskFactors: RiskFactor[]): Date | undefined {
+  private calculateOptimalStartTime(estimatedCompletion: Date, riskFactors: RiskFactor[]): Date | undefined {
     // Calculate buffer time based on risk factors
     const totalRisk = riskFactors.reduce((sum, risk) => sum + (risk.probability * risk.impact), 0);
     const bufferTime = totalRisk * 0.5; // 50% buffer for identified risks
@@ -614,7 +614,7 @@ export class PerformanceAnalyzer implements IPerformanceAnalyzer {
     }
   }
 
-  private validatePredictionInputs(_currentWave: WaveMetrics, _historicalData: WaveMetrics[], _tasks: Task[]): void {
+  private validatePredictionInputs(currentWave: WaveMetrics, historicalData: WaveMetrics[], tasks: Task[]): void {
     if (!currentWave) {
       throw new DataValidationError('Current wave metrics are required');
     }
@@ -773,7 +773,7 @@ export class PerformanceAnalyzer implements IPerformanceAnalyzer {
     return groups;
   }
 
-  private generateCacheKey(_type: string, _data: unknown): string {
+  private generateCacheKey(type: string, data: unknown): string {
     // Simple cache key generation based on data hash
     return `${type}_${JSON.stringify(data).length}_${Date.now()}`;
   }

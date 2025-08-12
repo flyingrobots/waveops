@@ -31,11 +31,11 @@ export class LoadBalancer {
    */
   async calculateLoadMetrics(wave: number): Promise<LoadBalanceMetrics> {
     try {
-      const teams = await this.deps.getAllTeams();
+      const teams = await this._deps.getAllTeams();
       const utilizations: TeamUtilization[] = [];
       
       for (const teamId of teams) {
-        const utilization = await this.deps.getTeamUtilization(teamId);
+        const utilization = await this._deps.getTeamUtilization(teamId);
         utilizations.push(utilization);
       }
 
@@ -44,7 +44,7 @@ export class LoadBalancer {
       const bottleneckTeams = this.identifyBottlenecks(utilizations);
       const underutilizedTeams = this.identifyUnderutilized(utilizations);
       
-      const tasks = await this.deps.getTasksByWave(wave);
+      const tasks = await this._deps.getTasksByWave(wave);
       const recommendedTransfers = await this.generateTransferRecommendations(
         tasks,
         utilizations
@@ -72,7 +72,7 @@ export class LoadBalancer {
    */
   private identifyBottlenecks(utilizations: TeamUtilization[]): string[] {
     return utilizations
-      .filter(u => u.utilizationRate > this.config.utilizationThreshold)
+      .filter(u => u.utilizationRate > this._config.utilizationThreshold)
       .sort((a, b) => b.utilizationRate - a.utilizationRate)
       .map(u => u.teamId);
   }
@@ -132,7 +132,7 @@ export class LoadBalancer {
     const bottleneckTasks = tasks.filter(task => bottlenecks.includes(task.team));
     
     for (const task of bottleneckTasks) {
-      const candidates = await this.deps.findTeamMatches(task, task.team);
+      const candidates = await this._deps.findTeamMatches(task, task.team);
       
       // Filter candidates that would actually improve load balance
       const viableCandidates = candidates.filter(candidate => {
@@ -140,8 +140,8 @@ export class LoadBalancer {
         const targetUtilization = utilizations.find(u => u.teamId === targetTeam);
         
         return targetUtilization && 
-               targetUtilization.utilizationRate < this.config.utilizationThreshold &&
-               candidate.expectedBenefit > this.config.minimumTransferBenefit;
+               targetUtilization.utilizationRate < this._config.utilizationThreshold &&
+               candidate.expectedBenefit > this._config.minimumTransferBenefit;
       });
 
       recommendations.push(...viableCandidates);
@@ -150,14 +150,14 @@ export class LoadBalancer {
     // Sort by expected benefit and limit to max transfers
     return recommendations
       .sort((a, b) => b.expectedBenefit - a.expectedBenefit)
-      .slice(0, this.config.maxTransfersPerWave);
+      .slice(0, this._config.maxTransfersPerWave);
   }
 
   /**
    * Performs proactive load balancing based on predictive analysis
    */
   async performProactiveBalancing(wave: number): Promise<WorkStealingCandidate[]> {
-    if (!this.config.proactiveStealingEnabled) {
+    if (!this._config.proactiveStealingEnabled) {
       return [];
     }
 
@@ -168,8 +168,8 @@ export class LoadBalancer {
 
       // Identify teams that will become bottlenecks soon
       for (const prediction of predictions) {
-        if (prediction.predictedUtilization > this.config.utilizationThreshold + 0.1) {
-          const tasks = await this.deps.getTasksByWave(wave);
+        if (prediction.predictedUtilization > this._config.utilizationThreshold + 0.1) {
+          const tasks = await this._deps.getTasksByWave(wave);
           const teamTasks = tasks.filter(t => t.team === prediction.teamId);
           
           // Find low-priority tasks that could be moved preemptively
@@ -178,7 +178,7 @@ export class LoadBalancer {
             .sort((a, b) => a.depends_on.length - b.depends_on.length);
 
           for (const task of movableTasks.slice(0, 2)) { // Limit proactive moves
-            const candidates = await this.deps.findTeamMatches(task, task.team);
+            const candidates = await this._deps.findTeamMatches(task, task.team);
             const bestCandidate = candidates[0];
             
             if (bestCandidate && bestCandidate.expectedBenefit > 0.1) {
@@ -193,7 +193,7 @@ export class LoadBalancer {
 
       return proactiveRecommendations
         .sort((a, b) => b.expectedBenefit - a.expectedBenefit)
-        .slice(0, Math.floor(this.config.maxTransfersPerWave / 2));
+        .slice(0, Math.floor(this._config.maxTransfersPerWave / 2));
 
     } catch (error) {
       throw new WorkStealingError(
@@ -208,16 +208,16 @@ export class LoadBalancer {
    * Handles emergency rebalancing for critical situations
    */
   async performEmergencyRebalancing(wave: number): Promise<WorkStealingCandidate[]> {
-    if (!this.config.emergencyStealingEnabled) {
+    if (!this._config.emergencyStealingEnabled) {
       return [];
     }
 
     try {
-      const teams = await this.deps.getAllTeams();
+      const teams = await this._deps.getAllTeams();
       const utilizations: TeamUtilization[] = [];
       
       for (const teamId of teams) {
-        const utilization = await this.deps.getTeamUtilization(teamId);
+        const utilization = await this._deps.getTeamUtilization(teamId);
         utilizations.push(utilization);
       }
 
@@ -232,7 +232,7 @@ export class LoadBalancer {
       }
 
       const emergencyRecommendations: WorkStealingCandidate[] = [];
-      const tasks = await this.deps.getTasksByWave(wave);
+      const tasks = await this._deps.getTasksByWave(wave);
 
       for (const emergencyTeam of emergencyTeams) {
         const teamTasks = tasks.filter(t => t.team === emergencyTeam.teamId);
@@ -245,7 +245,7 @@ export class LoadBalancer {
         });
 
         for (const task of tasksByPriority.slice(0, 3)) {
-          const candidates = await this.deps.findTeamMatches(task, task.team);
+          const candidates = await this._deps.findTeamMatches(task, task.team);
           const bestCandidate = candidates[0];
           
           if (bestCandidate && bestCandidate.skillMatch >= 0.3) { // Lower skill threshold for emergency
@@ -260,7 +260,7 @@ export class LoadBalancer {
 
       return emergencyRecommendations
         .sort((a, b) => (b.expectedBenefit / b.transferCost) - (a.expectedBenefit / a.transferCost))
-        .slice(0, this.config.maxTransfersPerWave);
+        .slice(0, this._config.maxTransfersPerWave);
 
     } catch (error) {
       throw new WorkStealingError(
@@ -275,18 +275,18 @@ export class LoadBalancer {
    * Predicts utilization trends based on current state and task complexity
    */
   private async predictUtilizationTrends(wave: number): Promise<Array<{teamId: string, predictedUtilization: number}>> {
-    const teams = await this.deps.getAllTeams();
-    const tasks = await this.deps.getTasksByWave(wave);
+    const teams = await this._deps.getAllTeams();
+    const tasks = await this._deps.getTasksByWave(wave);
     const predictions: Array<{teamId: string, predictedUtilization: number}> = [];
 
     for (const teamId of teams) {
-      const utilization = await this.deps.getTeamUtilization(teamId);
+      const utilization = await this._deps.getTeamUtilization(teamId);
       const teamTasks = tasks.filter(t => t.team === teamId);
       
       // Estimate future load based on task complexity and dependencies
       let complexityFactor = 0;
       for (const task of teamTasks) {
-        const duration = await this.deps.estimateTaskDuration(task.id, teamId);
+        const duration = await this._deps.estimateTaskDuration(task.id, teamId);
         const dependencyComplexity = task.depends_on.length * 0.1;
         const criticalityFactor = task.critical ? 1.2 : 1.0;
         
@@ -311,7 +311,7 @@ export class LoadBalancer {
    * Checks if a team has critical tasks that could cause bottlenecks
    */
   private async hasCriticalTasks(teamId: string, wave: number): Promise<boolean> {
-    const tasks = await this.deps.getTasksByWave(wave);
+    const tasks = await this._deps.getTasksByWave(wave);
     return tasks.some(t => t.team === teamId && t.critical);
   }
 
@@ -319,12 +319,12 @@ export class LoadBalancer {
    * Calculates the optimal load distribution across teams
    */
   async calculateOptimalDistribution(wave: number): Promise<Map<string, number>> {
-    const teams = await this.deps.getAllTeams();
-    const tasks = await this.deps.getTasksByWave(wave);
+    const teams = await this._deps.getAllTeams();
+    const tasks = await this._deps.getTasksByWave(wave);
     const utilizations: TeamUtilization[] = [];
     
     for (const teamId of teams) {
-      const utilization = await this.deps.getTeamUtilization(teamId);
+      const utilization = await this._deps.getTeamUtilization(teamId);
       utilizations.push(utilization);
     }
 
@@ -352,7 +352,7 @@ export class LoadBalancer {
     const metrics = await this.calculateLoadMetrics(wave);
     
     const imbalanceScore = metrics.utilizationVariance * 10; // Scale for readability
-    const healthy = imbalanceScore < this.config.imbalanceThreshold && 
+    const healthy = imbalanceScore < this._config.imbalanceThreshold && 
                    metrics.bottleneckTeams.length === 0;
 
     const recommendedActions: string[] = [];
@@ -365,11 +365,11 @@ export class LoadBalancer {
       recommendedActions.push(`Redistribute work from underutilized teams: ${metrics.underutilizedTeams.slice(0, 2).join(', ')}`);
     }
 
-    if (imbalanceScore > this.config.imbalanceThreshold * 1.5) {
+    if (imbalanceScore > this._config.imbalanceThreshold * 1.5) {
       recommendedActions.push('Consider emergency rebalancing due to high variance');
     }
 
-    if (metrics.recommendedTransfers.length > this.config.maxTransfersPerWave) {
+    if (metrics.recommendedTransfers.length > this._config.maxTransfersPerWave) {
       recommendedActions.push('Implement gradual rebalancing over multiple waves');
     }
 
