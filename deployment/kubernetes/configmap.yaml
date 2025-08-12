@@ -1,0 +1,226 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: waveops-config
+  namespace: waveops
+  labels:
+    app.kubernetes.io/name: waveops
+    app.kubernetes.io/component: configuration
+    app.kubernetes.io/part-of: waveops
+data:
+  # Application Configuration
+  app-config.yaml: |
+    server:
+      port: 3000
+      host: "0.0.0.0"
+      
+    coordination:
+      maxConcurrentWaves: 50
+      defaultWaveTimeout: 3600000
+      coordinationLatencyThreshold: 1000
+      
+    multiRepository:
+      enabled: true
+      maxRepositories: 100
+      synchronizationTimeout: 300000
+      crossRepoCoordinationEnabled: true
+      
+    highAvailability:
+      enabled: true
+      leaderElection:
+        enabled: true
+        lockName: "waveops-coordination-lock"
+        leaseDurationSeconds: 15
+        renewDeadlineSeconds: 10
+        retryPeriodSeconds: 2
+        namespace: "waveops"
+      replication:
+        enabled: true
+        replicationFactor: 3
+        consistency: "strong"
+        
+    autoScaling:
+      enabled: true
+      horizontalScaling:
+        minReplicas: 2
+        maxReplicas: 10
+        targetCPUUtilization: 70
+        targetMemoryUtilization: 80
+        scaleUpBehavior:
+          stabilizationWindowSeconds: 60
+          selectPolicy: "Max"
+          policies:
+            - type: "Pods"
+              value: 2
+              periodSeconds: 60
+        scaleDownBehavior:
+          stabilizationWindowSeconds: 300
+          selectPolicy: "Min"
+          policies:
+            - type: "Percent"
+              value: 10
+              periodSeconds: 60
+              
+    observability:
+      tracing:
+        enabled: true
+        provider: "opentelemetry"
+        samplingRate: 0.1
+        exporters:
+          - type: "OTLP_GRPC"
+            endpoint: "http://otel-collector:4317"
+      metrics:
+        enabled: true
+        provider: "prometheus"
+        scrapeInterval: 15
+        exporters:
+          - type: "PROMETHEUS"
+            endpoint: "http://prometheus:9090"
+      logging:
+        enabled: true
+        level: "info"
+        format: "json"
+        correlationId:
+          enabled: true
+          headerName: "x-correlation-id"
+          
+    security:
+      authentication:
+        providers:
+          - type: "JWT"
+            name: "default"
+            enabled: true
+      authorization:
+        rbac:
+          enabled: true
+      encryption:
+        transitEncryption:
+          enabled: true
+          protocols: ["TLS_1_3"]
+        restEncryption:
+          enabled: true
+          algorithm: "AES_256"
+          
+  # Prometheus Configuration  
+  prometheus-config.yaml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+    
+    rule_files:
+      - "/etc/prometheus/rules/*.yml"
+      
+    scrape_configs:
+      - job_name: 'waveops'
+        static_configs:
+          - targets: ['waveops-service:9090']
+        scrape_interval: 15s
+        metrics_path: /metrics
+        
+      - job_name: 'kubernetes-pods'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - waveops
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+            
+  # Alert Rules
+  alert-rules.yaml: |
+    groups:
+      - name: waveops.rules
+        rules:
+          - alert: WaveOpsHighLatency
+            expr: waveops_coordination_latency_p99 > 2000
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "WaveOps coordination latency is high"
+              description: "Coordination latency P99 is {{ $value }}ms"
+              
+          - alert: WaveOpsHighErrorRate
+            expr: rate(waveops_errors_total[5m]) > 0.1
+            for: 2m
+            labels:
+              severity: critical
+            annotations:
+              summary: "WaveOps error rate is high"
+              description: "Error rate is {{ $value }} errors/second"
+              
+          - alert: WaveOpsInstanceDown
+            expr: up{job="waveops"} == 0
+            for: 1m
+            labels:
+              severity: critical
+            annotations:
+              summary: "WaveOps instance is down"
+              description: "Instance {{ $labels.instance }} is down"
+              
+          - alert: WaveOpsLeaderElectionFailure
+            expr: waveops_leader_election_failures_total > 0
+            for: 1m
+            labels:
+              severity: warning
+            annotations:
+              summary: "WaveOps leader election failure"
+              description: "Leader election has failed {{ $value }} times"
+              
+  # Grafana Dashboard Configuration
+  grafana-dashboard-config.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "WaveOps Enterprise Monitoring",
+        "description": "Comprehensive monitoring for WaveOps enterprise scaling",
+        "tags": ["waveops", "coordination", "enterprise"],
+        "timezone": "utc",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Active Waves",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "waveops_active_waves_total",
+                "legendFormat": "Active Waves"
+              }
+            ]
+          },
+          {
+            "id": 2,
+            "title": "Coordination Latency",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "waveops_coordination_latency_p50",
+                "legendFormat": "P50"
+              },
+              {
+                "expr": "waveops_coordination_latency_p99",
+                "legendFormat": "P99"
+              }
+            ]
+          },
+          {
+            "id": 3,
+            "title": "Repository Status",
+            "type": "table",
+            "targets": [
+              {
+                "expr": "waveops_repository_status",
+                "legendFormat": "{{ repository }}"
+              }
+            ]
+          }
+        ],
+        "time": {
+          "from": "now-1h",
+          "to": "now"
+        },
+        "refresh": "30s"
+      }
+    }
