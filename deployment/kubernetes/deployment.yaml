@@ -1,0 +1,421 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: waveops-coordinator
+  namespace: waveops
+  labels:
+    app.kubernetes.io/name: waveops
+    app.kubernetes.io/component: coordinator
+    app.kubernetes.io/part-of: waveops
+    app.kubernetes.io/version: "1.0.0"
+  annotations:
+    deployment.kubernetes.io/revision: "1"
+    description: "WaveOps Enterprise Coordinator Deployment"
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: waveops
+      app.kubernetes.io/component: coordinator
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: waveops
+        app.kubernetes.io/component: coordinator
+        app.kubernetes.io/part-of: waveops
+        app.kubernetes.io/version: "1.0.0"
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+        config.linkerd.io/proxy-cpu-request: "0.2"
+        config.linkerd.io/proxy-memory-request: "64Mi"
+    spec:
+      serviceAccountName: waveops-service-account
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
+      terminationGracePeriodSeconds: 60
+      imagePullSecrets:
+      - name: waveops-registry-secret
+      initContainers:
+      - name: database-migration
+        image: waveops:latest
+        command: ["node", "dist/cli/migrate.js"]
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: waveops-secrets
+              key: DATABASE_URL
+        - name: NODE_ENV
+          value: "production"
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      containers:
+      - name: waveops-coordinator
+        image: waveops:latest
+        imagePullPolicy: Always
+        ports:
+        - name: http
+          containerPort: 3000
+          protocol: TCP
+        - name: metrics
+          containerPort: 9090
+          protocol: TCP
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: WAVEOPS_INSTANCE_ID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: WAVEOPS_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: WAVEOPS_NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: WAVEOPS_POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: waveops-secrets
+              key: DATABASE_URL
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              name: waveops-secrets
+              key: REDIS_URL
+        - name: GITHUB_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: waveops-secrets
+              key: GITHUB_TOKEN
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: waveops-secrets
+              key: JWT_SECRET
+        - name: ENCRYPTION_KEY
+          valueFrom:
+            secretKeyRef:
+              name: waveops-secrets
+              key: ENCRYPTION_KEY
+        - name: WAVEOPS_HA_ENABLED
+          value: "true"
+        - name: WAVEOPS_LEADER_ELECTION_ENABLED
+          value: "true"
+        - name: WAVEOPS_LEADER_ELECTION_LOCK_NAME
+          value: "waveops-coordination-lock"
+        - name: WAVEOPS_LEADER_ELECTION_NAMESPACE
+          value: "waveops"
+        - name: WAVEOPS_METRICS_ENABLED
+          value: "true"
+        - name: WAVEOPS_TRACING_ENABLED
+          value: "true"
+        - name: WAVEOPS_LOG_LEVEL
+          value: "info"
+        - name: WAVEOPS_OBSERVABILITY_OTLP_ENDPOINT
+          value: "http://otel-collector:4317"
+        volumeMounts:
+        - name: config
+          mountPath: /app/config
+          readOnly: true
+        - name: tmp
+          mountPath: /tmp
+        - name: logs
+          mountPath: /app/logs
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          successThreshold: 1
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: http
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 10
+        resources:
+          requests:
+            cpu: 250m
+            memory: 512Mi
+            ephemeral-storage: 1Gi
+          limits:
+            cpu: 1000m
+            memory: 2Gi
+            ephemeral-storage: 2Gi
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+      volumes:
+      - name: config
+        configMap:
+          name: waveops-config
+      - name: tmp
+        emptyDir: {}
+      - name: logs
+        emptyDir:
+          sizeLimit: 1Gi
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values:
+                  - waveops
+                - key: app.kubernetes.io/component
+                  operator: In
+                  values:
+                  - coordinator
+              topologyKey: kubernetes.io/hostname
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 50
+            preference:
+              matchExpressions:
+              - key: node-type
+                operator: In
+                values:
+                - coordination
+      tolerations:
+      - key: "coordination"
+        operator: "Equal"
+        value: "true"
+        effect: "NoSchedule"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: waveops-service
+  namespace: waveops
+  labels:
+    app.kubernetes.io/name: waveops
+    app.kubernetes.io/component: coordinator
+    app.kubernetes.io/part-of: waveops
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9090"
+    prometheus.io/path: "/metrics"
+spec:
+  type: LoadBalancer
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 300
+  ports:
+  - name: http
+    port: 80
+    targetPort: http
+    protocol: TCP
+  - name: https
+    port: 443
+    targetPort: http
+    protocol: TCP
+  - name: metrics
+    port: 9090
+    targetPort: metrics
+    protocol: TCP
+  selector:
+    app.kubernetes.io/name: waveops
+    app.kubernetes.io/component: coordinator
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: waveops-headless
+  namespace: waveops
+  labels:
+    app.kubernetes.io/name: waveops
+    app.kubernetes.io/component: coordinator
+    app.kubernetes.io/part-of: waveops
+spec:
+  type: ClusterIP
+  clusterIP: None
+  publishNotReadyAddresses: true
+  ports:
+  - name: http
+    port: 3000
+    targetPort: http
+    protocol: TCP
+  - name: metrics
+    port: 9090
+    targetPort: metrics
+    protocol: TCP
+  selector:
+    app.kubernetes.io/name: waveops
+    app.kubernetes.io/component: coordinator
+
+---
+# Horizontal Pod Autoscaler
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: waveops-hpa
+  namespace: waveops
+  labels:
+    app.kubernetes.io/name: waveops
+    app.kubernetes.io/component: autoscaler
+    app.kubernetes.io/part-of: waveops
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: waveops-coordinator
+  minReplicas: 2
+  maxReplicas: 20
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  - type: Pods
+    pods:
+      metric:
+        name: waveops_coordination_latency_p99
+      target:
+        type: AverageValue
+        averageValue: "2000"
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      selectPolicy: Max
+      policies:
+      - type: Pods
+        value: 2
+        periodSeconds: 60
+      - type: Percent
+        value: 50
+        periodSeconds: 60
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      selectPolicy: Min
+      policies:
+      - type: Pods
+        value: 1
+        periodSeconds: 60
+      - type: Percent
+        value: 10
+        periodSeconds: 60
+
+---
+# Pod Disruption Budget
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: waveops-pdb
+  namespace: waveops
+  labels:
+    app.kubernetes.io/name: waveops
+    app.kubernetes.io/component: coordinator
+    app.kubernetes.io/part-of: waveops
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: waveops
+      app.kubernetes.io/component: coordinator
+
+---
+# Ingress
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: waveops-ingress
+  namespace: waveops
+  labels:
+    app.kubernetes.io/name: waveops
+    app.kubernetes.io/component: ingress
+    app.kubernetes.io/part-of: waveops
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+    nginx.ingress.kubernetes.io/upstream-hash-by: "$binary_remote_addr"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  tls:
+  - hosts:
+    - waveops.example.com
+    - api.waveops.example.com
+    secretName: waveops-tls
+  rules:
+  - host: waveops.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: waveops-service
+            port:
+              number: 80
+  - host: api.waveops.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: waveops-service
+            port:
+              number: 80
