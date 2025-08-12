@@ -78,16 +78,20 @@ export class WebhookHandler {
     // Parse common command patterns
     switch (command) {
       case 'ready':
-        if (parts[1] && parts[1].startsWith('wave-')) {
-          args.wave = parseInt(parts[1].replace('wave-', ''));
+        // Support multiple formats: /ready wave-1, /ready wave:1, /ready 1
+        if (parts[1]) {
+          const waveMatch = parts[1].match(/(?:wave[-:]?)?(\d+)/i);
+          if (waveMatch) {
+            args.wave = parseInt(waveMatch[1]);
+          }
         }
         break;
         
       case 'blocked': {
-        // Parse reason:"..." format
-        const reasonMatch = body.match(/reason:"([^"]+)"/);
+        // Parse reason with multiple quote styles: reason:"...", reason:'...', reason:...
+        const reasonMatch = body.match(/reason[:=]\s*['"']?([^'"]+)['"']?/i);
         if (reasonMatch) {
-          args.reason = reasonMatch[1];
+          args.reason = reasonMatch[1].trim();
         }
         break;
       }
@@ -129,6 +133,53 @@ export class WebhookHandler {
     // In a real implementation, this would validate the GitHub webhook signature
     // For simulation purposes, we'll return true
     return true;
+  }
+
+  /**
+   * Validate team membership and command authorization
+   */
+  static async validateTeamMembership(actor: string, command: string, args: Record<string, string | number>): Promise<{ valid: boolean; team?: string; error?: string }> {
+    // In a real implementation, this would load teams.yaml and validate membership
+    // For simulation purposes, we'll use hardcoded team assignments
+    const teamMemberships = {
+      'alice': 'alpha',
+      'bob': 'beta'
+    };
+
+    const userTeam = teamMemberships[actor as keyof typeof teamMemberships];
+    if (!userTeam) {
+      return { valid: false, error: `User ${actor} is not a member of any team` };
+    }
+
+    // Validate command authorization
+    switch (command) {
+      case 'ready':
+        // Only team members can mark their team ready
+        return { valid: true, team: userTeam };
+      
+      case 'blocked':
+        // Team members can report blocks
+        return { valid: true, team: userTeam };
+      
+      case 'claim': {
+        // Team members can claim tasks assigned to their team
+        const taskId = args.task as string;
+        if (taskId && taskId.startsWith('W2.T')) {
+          const teamAssignments = {
+            'W2.T001': 'alpha', 'W2.T002': 'alpha',
+            'W2.T003': 'beta', 'W2.T004': 'beta'
+          };
+          const taskTeam = teamAssignments[taskId as keyof typeof teamAssignments];
+          if (taskTeam !== userTeam) {
+            return { valid: false, error: `Task ${taskId} is assigned to team ${taskTeam}, not ${userTeam}` };
+          }
+        }
+        return { valid: true, team: userTeam };
+      }
+        
+      default:
+        return { valid: true, team: userTeam };
+    }
   }
 
   /**
