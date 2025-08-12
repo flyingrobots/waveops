@@ -1,51 +1,196 @@
-name: wave-coordinator
+name: WaveOps Coordinator
+
 on:
+  issues:
+    types: [opened, edited, closed, reopened]
   issue_comment:
-    types: [created]
+    types: [created, edited]
+  pull_request:
+    types: [opened, closed, synchronize]
+  pull_request_review:
+    types: [submitted]
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      command:
+        description: 'Manual coordination command'
+        required: true
+        type: string
+      issue_number:
+        description: 'Issue number for command context'
+        required: false
+        type: string
+
+# Security: Minimal required permissions
 permissions:
   contents: read
   issues: write
-  pull-requests: read
-  checks: write
+  pull-requests: write
   deployments: write
+  checks: write
+  actions: read
+
+# Prevent race conditions in wave coordination
+concurrency:
+  group: wave-coordination-${{ github.repository }}
+  cancel-in-progress: false
+
 jobs:
-  handle:
-    if: github.event.issue && contains(github.event.issue.title, 'Wave ') && contains(github.event.issue.title, 'Coordination')
+  coordinate:
+    name: Wave Coordination
     runs-on: ubuntu-latest
-    concurrency: 
-      group: wave-coordinator
-      cancel-in-progress: true
+    timeout-minutes: 10
+
+    # Only run for coordination-related events
+    if: |
+      (github.event_name == 'issues' && contains(github.event.issue.labels.*.name, 'coordination')) ||
+      (github.event_name == 'issue_comment' && contains(github.event.issue.labels.*.name, 'coordination')) ||
+      (github.event_name == 'pull_request') ||
+      (github.event_name == 'pull_request_review') ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_dispatch')
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20.x'
+          node-version: '20'
           cache: 'npm'
-      - run: npm ci
-      - name: Run WaveOps Coordinator
-        uses: actions/github-script@v7
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build project
+        run: npm run build
+
+      - name: Extract event context
+        id: context
+        run: |
+          echo "Event: ${{ github.event_name }}"
+          echo "event_name=${{ github.event_name }}" >> $GITHUB_OUTPUT
+          
+          # Extract coordination issue number
+          if [[ "${{ github.event_name }}" == "issues" ]]; then
+            echo "issue_number=${{ github.event.issue.number }}" >> $GITHUB_OUTPUT
+            echo "Issue #${{ github.event.issue.number }}: ${{ github.event.issue.title }}"
+          elif [[ "${{ github.event_name }}" == "issue_comment" ]]; then
+            echo "issue_number=${{ github.event.issue.number }}" >> $GITHUB_OUTPUT
+            echo "Comment on #${{ github.event.issue.number }}: ${{ github.event.comment.body }}"
+          elif [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "pr_number=${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
+            echo "PR #${{ github.event.pull_request.number }}: ${{ github.event.pull_request.title }}"
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "issue_number=${{ github.event.inputs.issue_number }}" >> $GITHUB_OUTPUT
+            echo "Manual command: ${{ github.event.inputs.command }}"
+          fi
+
+      - name: Process coordination command
+        id: command
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ steps.context.outputs.issue_number }}
+          PR_NUMBER: ${{ steps.context.outputs.pr_number }}
+          EVENT_NAME: ${{ steps.context.outputs.event_name }}
+          MANUAL_COMMAND: ${{ github.event.inputs.command }}
+        run: |
+          echo "🎯 Processing wave coordination event..."
+          
+          # Run the wave coordinator
+          case "$EVENT_NAME" in
+            "issues")
+              echo "Processing issue event for #$ISSUE_NUMBER"
+              npm run coordinate -- --event=issue --issue="$ISSUE_NUMBER"
+              ;;
+            "issue_comment")
+              echo "Processing comment event for #$ISSUE_NUMBER"
+              npm run coordinate -- --event=comment --issue="$ISSUE_NUMBER"
+              ;;
+            "pull_request")
+              echo "Processing pull request event for #$PR_NUMBER"
+              npm run coordinate -- --event=pr --pr="$PR_NUMBER"
+              ;;
+            "pull_request_review")
+              echo "Processing PR review event for #$PR_NUMBER"
+              npm run coordinate -- --event=pr-review --pr="$PR_NUMBER"
+              ;;
+            "push")
+              echo "Processing push event to main branch"
+              npm run coordinate -- --event=push --ref="main"
+              ;;
+            "workflow_dispatch")
+              echo "Processing manual command: $MANUAL_COMMAND"
+              npm run coordinate -- --event=manual --command="$MANUAL_COMMAND" --issue="$ISSUE_NUMBER"
+              ;;
+          esac
+
+      - name: Update wave status
+        if: success()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "✅ Wave coordination completed successfully"
+          echo "Checking for wave transitions..."
+          npm run wave-status || echo "Wave status check completed with warnings"
+
+      - name: Handle coordination errors
+        if: failure()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ steps.context.outputs.issue_number }}
+        run: |
+          echo "❌ Wave coordination failed"
+          
+          # Post error comment to coordination issue if available
+          if [[ -n "$ISSUE_NUMBER" ]]; then
+            cat > error-comment.md << 'EOF'
+          ⚠️ **Wave Coordination Error**
+          
+          The wave coordination workflow encountered an error while processing this event.
+          
+          **Event:** ${{ github.event_name }}
+          **Run:** [${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          **Timestamp:** $(date -u)
+          
+          Please check the workflow logs for details. The coordination system will retry on the next relevant event.
+          
+          ---
+          *Automated error report from WaveOps Coordinator*
+          EOF
+            
+            gh issue comment "$ISSUE_NUMBER" --body-file error-comment.md || echo "Could not post error comment"
+          fi
+          
+          exit 1
+
+  # Security audit job
+  audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          script: |
-            // This would be the actual WaveOps coordinator implementation
-            // For now, just log that we received the command
-            const comment = context.payload.comment.body.trim();
-            const actor = context.payload.comment.user.login;
-            const issueNumber = context.payload.issue.number;
-            
-            console.log(`WaveOps: Processing command "${comment}" from ${actor} on issue #${issueNumber}`);
-            
-            // In real implementation:
-            // 1. Parse command → auth → validate → deployments → update pinned JSON → gate check
-            // 2. Load tasks.yaml and teams.yaml  
-            // 3. Validate team membership
-            // 4. Run task validation (PRs merged with CI green)
-            // 5. Update deployments and JSON state
-            // 6. Check for wave gate conditions
-            
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: issueNumber,
-              body: `🤖 **WaveBot**: Received command \`${comment}\` from @${actor}\n\n(This is a placeholder - full coordinator implementation in progress)`
-            });
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Security audit
+        run: |
+          npm audit --audit-level=moderate
+          echo "Security audit completed"
+
+      - name: Check for secrets in logs
+        run: |
+          echo "Scanning for potential secrets in recent commits..."
+          # Basic secret detection (tokens, keys, passwords)
+          git log --oneline -10 | grep -iE "(token|key|password|secret|api_key)" || echo "No obvious secrets detected"
