@@ -1,0 +1,109 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://waveops.dev/schemas/config.json",
+  "title": "WaveOps Configuration",
+  "description": "Optional configuration for WaveOps behavior",
+  "type": "object",
+  "properties": {
+    "checks": {
+      "type": "object",
+      "properties": {
+        "allow_neutral": {
+          "type": "boolean",
+          "default": true
+        },
+        "required": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "List of required check names"
+        }
+      }
+    },
+    "coverage": {
+      "type": "object", 
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "threshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.9
+        }
+      }
+    },
+    "docs": {
+      "type": "object",
+      "properties": {
+        "required_globs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Glob patterns for required documentation files"
+        }
+      }
+    },
+    "modes": {
+      "type": "object",
+      "properties": {
+        "quorum": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false
+            },
+            "threshold": {
+              "type": "string",
+              "default": "2/3"
+            },
+            "critical_teams": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "rolling": {
+          "type": "object", 
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        },
+        "speculative": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        }
+      }
+    },
+    "work_stealing": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "occupancy_threshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.7
+        }
+      }
+    }
+  }
+}
