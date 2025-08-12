@@ -74,7 +74,7 @@ export interface GitHubIssue {
   };
   created_at: string;
   updated_at: string;
-  closed_at?: string;
+  closed_at?: string | null;
   labels?: ({ name?: string } | string)[];
   assignees?: { login: string }[];
 }
@@ -511,4 +511,158 @@ export enum WorkStealingErrorCode {
   TRANSFER_REJECTED = 3,
   COORDINATION_FAILURE = 4,
   INVALID_CONFIGURATION = 5
+}
+
+// GitHub API Extension Types
+export interface TeamMember {
+  id: number;
+  login: string;
+  node_id: string;
+  email?: string;
+  name?: string;
+  role: TeamMemberRole;
+  permissions: TeamMemberPermissions;
+  url: string;
+  avatar_url: string;
+  type: 'User' | 'Bot';
+  site_admin: boolean;
+}
+
+export enum TeamMemberRole {
+  MEMBER = 0,
+  MAINTAINER = 1,
+  ADMIN = 2
+}
+
+export interface TeamMemberPermissions {
+  can_create_repository: boolean;
+  can_manage_team: boolean;
+  can_assign_issues: boolean;
+  can_review_pull_requests: boolean;
+  admin: boolean;
+  push: boolean;
+  pull: boolean;
+}
+
+export interface Repository {
+  id: number;
+  node_id: string;
+  name: string;
+  full_name: string;
+  private: boolean;
+  owner: {
+    login: string;
+    id: number;
+    type: 'User' | 'Organization';
+  };
+  html_url: string;
+  description: string | null;
+  fork: boolean;
+  created_at: string | null;
+  updated_at: string | null;
+  pushed_at: string | null;
+  clone_url: string | null;
+  ssh_url: string | null;
+  size: number;
+  stargazers_count: number;
+  watchers_count: number;
+  language: string | null;
+  has_issues: boolean;
+  has_projects: boolean;
+  has_wiki: boolean;
+  archived: boolean;
+  disabled: boolean;
+  open_issues_count: number;
+  topics: string[];
+  permissions: RepositoryPermissions;
+  default_branch: string | null;
+}
+
+export interface RepositoryPermissions {
+  admin: boolean;
+  maintain: boolean;
+  push: boolean;
+  triage: boolean;
+  pull: boolean;
+}
+
+export interface TeamAssignmentRequest {
+  team: string;
+  issues: string[];
+  assignees?: string[];
+  labels?: string[];
+  projectColumn?: string;
+  milestone?: string;
+}
+
+export interface TeamAssignmentResult {
+  team: string;
+  successful: string[];
+  failed: Array<{
+    issue: string;
+    error: string;
+  }>;
+  totalProcessed: number;
+  successRate: number;
+}
+
+// GitHub API Error Types
+export class GitHubAPIError extends Error {
+  constructor(
+    message: string,
+    public readonly statusCode: number,
+    public readonly endpoint: string,
+    public readonly method: string,
+    public readonly context?: Record<string, unknown>
+  ) {
+    super(message);
+    this.name = 'GitHubAPIError';
+  }
+}
+
+export class GitHubRateLimitError extends GitHubAPIError {
+  constructor(
+    message: string,
+    public readonly resetTime: Date,
+    public readonly remainingRequests: number,
+    endpoint: string,
+    method: string
+  ) {
+    super(message, 429, endpoint, method);
+    this.name = 'GitHubRateLimitError';
+  }
+}
+
+export class GitHubTeamNotFoundError extends GitHubAPIError {
+  constructor(
+    public readonly teamName: string,
+    public readonly organization: string
+  ) {
+    super(`Team '${teamName}' not found in organization '${organization}'`, 404, 'teams', 'GET');
+    this.name = 'GitHubTeamNotFoundError';
+  }
+}
+
+export class GitHubPermissionError extends GitHubAPIError {
+  constructor(
+    message: string,
+    public readonly requiredPermission: string,
+    endpoint: string,
+    method: string
+  ) {
+    super(message, 403, endpoint, method);
+    this.name = 'GitHubPermissionError';
+  }
+}
+
+export class GitHubTeamAssignmentError extends Error {
+  constructor(
+    message: string,
+    public readonly team: string,
+    public readonly partialResults: TeamAssignmentResult,
+    public readonly totalFailures: number
+  ) {
+    super(message);
+    this.name = 'GitHubTeamAssignmentError';
+  }
 }

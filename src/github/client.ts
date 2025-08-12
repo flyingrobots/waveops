@@ -10,7 +10,17 @@ import {
   GitHubIssueComment, 
   GitHubPullRequest, 
   GitHubCommitChecks,
-  RateLimitInfo 
+  RateLimitInfo,
+  TeamMember,
+  TeamMemberRole,
+  Repository,
+  TeamAssignmentRequest,
+  TeamAssignmentResult,
+  GitHubAPIError,
+  GitHubRateLimitError,
+  GitHubTeamNotFoundError,
+  GitHubPermissionError,
+  GitHubTeamAssignmentError
 } from '../types';
 
 export interface GitHubMetricsData {
@@ -30,7 +40,7 @@ export interface GitHubTimelineEvent {
   actor?: {
     login: string;
   };
-  commit_id?: string;
+  commit_id?: string | null;
   label?: {
     name: string;
   };
@@ -561,12 +571,12 @@ export class GitHubClient {
       });
 
       return response.data.map(event => ({
-        id: event.id || 0,
-        event: event.event || 'unknown',
-        created_at: event.created_at || new Date().toISOString(),
-        actor: event.actor ? { login: event.actor.login } : undefined,
-        commit_id: 'commit_id' in event ? event.commit_id : undefined,
-        label: 'label' in event ? { name: event.label?.name || '' } : undefined
+        id: (event as any).id || 0,
+        event: (event as any).event || 'unknown',
+        created_at: (event as any).created_at || new Date().toISOString(),
+        actor: (event as any).actor ? { login: (event as any).actor.login } : undefined,
+        commit_id: (event as any).commit_id || undefined,
+        label: (event as any).label ? { name: (event as any).label?.name || '' } : undefined
       }));
     } catch (error) {
       throw new Error(`Failed to get issue timeline: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -758,5 +768,602 @@ export class GitHubClient {
       size: this.metricsCache.size,
       hitRate: 0.75 // Placeholder - implement proper hit rate tracking
     };
+  }
+
+  // =================================================================
+  // CRITICAL GITHUB API EXTENSIONS - Foundation Infrastructure
+  // =================================================================
+
+  /**
+   * Get team members with roles and permissions
+   * This is CRITICAL INFRASTRUCTURE for team coordination features
+   */
+  async getTeamMembers(teamName: string): Promise<TeamMember[]> {
+    const cacheKey = this.getCacheKey('getTeamMembers', teamName);
+    const cached = this.getFromCache<TeamMember[]>(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    try {
+      // Get team ID first
+      const team = await this.getTeamByName(teamName);
+      
+      // Get team members with pagination support
+      const allMembers: TeamMember[] = [];
+      let page = 1;
+      const perPage = 100;
+
+      while (true) {
+        const response = await this.octokit.rest.teams.listMembersInOrg({
+          org: this.owner,
+          team_slug: teamName,
+          per_page: perPage,
+          page: page
+        });
+
+        if (response.data.length === 0) {
+          break;
+        }
+
+        // Get detailed member information with roles and permissions
+        for (const member of response.data) {
+          try {
+            const membershipResponse = await this.octokit.rest.teams.getMembershipForUserInOrg({
+              org: this.owner,
+              team_slug: teamName,
+              username: member.login
+            });
+
+            const teamMember: TeamMember = {
+              id: member.id,
+              login: member.login,
+              node_id: member.node_id,
+              email: member.email || undefined,
+              name: member.name || undefined,
+              role: this.mapGitHubRoleToEnum(membershipResponse.data.role),
+              permissions: await this.getTeamMemberPermissions(member.login, teamName),
+              url: member.url,
+              avatar_url: member.avatar_url,
+              type: member.type === 'Bot' ? 'Bot' : 'User',
+              site_admin: member.site_admin
+            };
+
+            allMembers.push(teamMember);
+          } catch (memberError) {
+            // Log warning but continue processing other members
+            console.warn(`Failed to get details for team member ${member.login}:`, memberError);
+            
+            // Add basic member info without detailed permissions
+            allMembers.push({
+              id: member.id,
+              login: member.login,
+              node_id: member.node_id,
+              role: TeamMemberRole.MEMBER, // Default role
+              permissions: this.getDefaultPermissions(),
+              url: member.url,
+              avatar_url: member.avatar_url,
+              type: member.type === 'Bot' ? 'Bot' : 'User',
+              site_admin: member.site_admin
+            });
+          }
+        }
+
+        page++;
+        
+        // Rate limiting: wait if we're approaching limits
+        await this.handleRateLimiting();
+      }
+
+      // Cache results for 15 minutes (team membership changes infrequently)
+      this.setCache(cacheKey, allMembers, 15 * 60 * 1000);
+      return allMembers;
+
+    } catch (error) {
+      if (error instanceof Error) {
+        if ('status' in error && (error as any).status === 404) {
+          throw new GitHubTeamNotFoundError(teamName, this.owner);
+        }
+        
+        if ('status' in error && (error as any).status === 403) {
+          throw new GitHubPermissionError(
+            `Insufficient permissions to access team '${teamName}'`,
+            'teams:read',
+            'teams',
+            'GET'
+          );
+        }
+
+        if ('status' in error && (error as any).status === 429) {
+          const resetHeader = (error as any).response?.headers['x-ratelimit-reset'];
+          const resetTime = resetHeader ? new Date(parseInt(resetHeader) * 1000) : new Date(Date.now() + 3600000);
+          throw new GitHubRateLimitError(
+            'Rate limit exceeded while fetching team members',
+            resetTime,
+            0,
+            'teams',
+            'GET'
+          );
+        }
+
+        throw new GitHubAPIError(
+          `Failed to get team members: ${error.message}`,
+          'status' in error ? (error as any).status : 500,
+          'teams',
+          'GET',
+          { teamName, error: error.message }
+        );
+      }
+
+      throw error;
+    }
+  }
+
+  /**
+   * Get repository issues filtered by labels with comprehensive pagination
+   * This is CRITICAL INFRASTRUCTURE for issue coordination and wave management
+   */
+  async getRepositoryIssues(labels: string[]): Promise<GitHubIssue[]> {
+    const cacheKey = this.getCacheKey('getRepositoryIssues', labels.sort());
+    const cached = this.getFromCache<GitHubIssue[]>(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    try {
+      const allIssues: GitHubIssue[] = [];
+      
+      // Build label query string
+      const labelQuery = labels.length > 0 ? labels.map(label => `label:"${label}"`).join(' ') : '';
+      const searchQuery = `repo:${this.owner}/${this.repo} is:issue ${labelQuery}`.trim();
+
+      let page = 1;
+      const perPage = 100; // GitHub Search API max
+
+      while (true) {
+        const response = await this.octokit.rest.search.issuesAndPullRequests({
+          q: searchQuery,
+          sort: 'updated',
+          order: 'desc',
+          per_page: perPage,
+          page: page
+        });
+
+        if (response.data.items.length === 0) {
+          break;
+        }
+
+        // Filter out pull requests (search API returns both issues and PRs)
+        const issues = response.data.items
+          .filter(item => !item.pull_request)
+          .map(item => ({
+            id: item.id,
+            number: item.number,
+            title: item.title,
+            body: item.body || '',
+            state: item.state as 'open' | 'closed',
+            user: {
+              login: item.user?.login || 'unknown'
+            },
+            created_at: item.created_at,
+            updated_at: item.updated_at,
+            closed_at: item.closed_at,
+            labels: item.labels,
+            assignees: item.assignees?.map(assignee => ({
+              login: assignee?.login || 'unknown'
+            })) || []
+          }));
+
+        allIssues.push(...issues);
+
+        // Check if we've reached the end
+        if (response.data.items.length < perPage) {
+          break;
+        }
+
+        page++;
+        
+        // Rate limiting protection
+        await this.handleRateLimiting();
+        
+        // GitHub Search API has stricter limits, add small delay
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+
+      // Cache for 5 minutes (issues change frequently)
+      this.setCache(cacheKey, allIssues, 5 * 60 * 1000);
+      return allIssues;
+
+    } catch (error) {
+      if (error instanceof Error) {
+        if ('status' in error && (error as any).status === 403) {
+          throw new GitHubPermissionError(
+            'Insufficient permissions to search repository issues',
+            'issues:read',
+            'search',
+            'GET'
+          );
+        }
+
+        if ('status' in error && (error as any).status === 429) {
+          const resetHeader = (error as any).response?.headers['x-ratelimit-reset'];
+          const resetTime = resetHeader ? new Date(parseInt(resetHeader) * 1000) : new Date(Date.now() + 3600000);
+          throw new GitHubRateLimitError(
+            'Rate limit exceeded while searching issues',
+            resetTime,
+            parseInt((error as any).response?.headers['x-ratelimit-remaining'] || '0'),
+            'search',
+            'GET'
+          );
+        }
+
+        throw new GitHubAPIError(
+          `Failed to get repository issues: ${error.message}`,
+          'status' in error ? (error as any).status : 500,
+          'search',
+          'GET',
+          { labels, error: error.message }
+        );
+      }
+
+      throw error;
+    }
+  }
+
+  /**
+   * Get repositories that a team has access to with permission levels
+   * This is CRITICAL INFRASTRUCTURE for multi-repository coordination
+   */
+  async getTeamRepositories(teamName: string): Promise<Repository[]> {
+    const cacheKey = this.getCacheKey('getTeamRepositories', teamName);
+    const cached = this.getFromCache<Repository[]>(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    try {
+      // Verify team exists first
+      await this.getTeamByName(teamName);
+
+      const allRepositories: Repository[] = [];
+      let page = 1;
+      const perPage = 100;
+
+      while (true) {
+        const response = await this.octokit.rest.teams.listReposInOrg({
+          org: this.owner,
+          team_slug: teamName,
+          per_page: perPage,
+          page: page
+        });
+
+        if (response.data.length === 0) {
+          break;
+        }
+
+        const repositories = response.data.map(repo => ({
+          id: repo.id,
+          node_id: repo.node_id,
+          name: repo.name,
+          full_name: repo.full_name,
+          private: repo.private,
+          owner: {
+            login: repo.owner.login,
+            id: repo.owner.id,
+            type: repo.owner.type as 'User' | 'Organization'
+          },
+          html_url: repo.html_url,
+          description: repo.description,
+          fork: repo.fork,
+          created_at: repo.created_at || null,
+          updated_at: repo.updated_at || null,
+          pushed_at: repo.pushed_at || null,
+          clone_url: repo.clone_url || null,
+          ssh_url: repo.ssh_url || null,
+          size: repo.size || 0,
+          stargazers_count: repo.stargazers_count || 0,
+          watchers_count: repo.watchers_count || 0,
+          language: repo.language || null,
+          has_issues: repo.has_issues || false,
+          has_projects: repo.has_projects || false,
+          has_wiki: repo.has_wiki || false,
+          archived: repo.archived || false,
+          disabled: repo.disabled || false,
+          open_issues_count: repo.open_issues_count || 0,
+          topics: repo.topics || [],
+          permissions: {
+            admin: repo.permissions?.admin || false,
+            maintain: repo.permissions?.maintain || false,
+            push: repo.permissions?.push || false,
+            triage: repo.permissions?.triage || false,
+            pull: repo.permissions?.pull || false
+          },
+          default_branch: repo.default_branch || null
+        }));
+
+        allRepositories.push(...repositories);
+        page++;
+
+        if (response.data.length < perPage) {
+          break;
+        }
+
+        // Rate limiting protection
+        await this.handleRateLimiting();
+      }
+
+      // Cache for 30 minutes (repository access changes infrequently)
+      this.setCache(cacheKey, allRepositories, 30 * 60 * 1000);
+      return allRepositories;
+
+    } catch (error) {
+      if (error instanceof Error) {
+        if ('status' in error && (error as any).status === 404) {
+          throw new GitHubTeamNotFoundError(teamName, this.owner);
+        }
+
+        if ('status' in error && (error as any).status === 403) {
+          throw new GitHubPermissionError(
+            `Insufficient permissions to access repositories for team '${teamName}'`,
+            'teams:read',
+            'teams',
+            'GET'
+          );
+        }
+
+        if ('status' in error && (error as any).status === 429) {
+          const resetHeader = (error as any).response?.headers['x-ratelimit-reset'];
+          const resetTime = resetHeader ? new Date(parseInt(resetHeader) * 1000) : new Date(Date.now() + 3600000);
+          throw new GitHubRateLimitError(
+            'Rate limit exceeded while fetching team repositories',
+            resetTime,
+            parseInt((error as any).response?.headers['x-ratelimit-remaining'] || '0'),
+            'teams',
+            'GET'
+          );
+        }
+
+        throw new GitHubAPIError(
+          `Failed to get team repositories: ${error.message}`,
+          'status' in error ? (error as any).status : 500,
+          'teams',
+          'GET',
+          { teamName, error: error.message }
+        );
+      }
+
+      throw error;
+    }
+  }
+
+  /**
+   * Create atomic team assignment to multiple issues
+   * This is CRITICAL INFRASTRUCTURE for wave coordination and task management
+   */
+  async createTeamAssignment(team: string, issues: string[]): Promise<TeamAssignmentResult> {
+    if (issues.length === 0) {
+      return {
+        team,
+        successful: [],
+        failed: [],
+        totalProcessed: 0,
+        successRate: 1.0
+      };
+    }
+
+    try {
+      // Verify team exists and get team members for assignment
+      const teamMembers = await this.getTeamMembers(team);
+      
+      if (teamMembers.length === 0) {
+        throw new GitHubTeamAssignmentError(
+          `Team '${team}' has no members to assign`,
+          team,
+          { team, successful: [], failed: [], totalProcessed: 0, successRate: 0 },
+          issues.length
+        );
+      }
+
+      const results: TeamAssignmentResult = {
+        team,
+        successful: [],
+        failed: [],
+        totalProcessed: 0,
+        successRate: 0
+      };
+
+      // Process issues in batches to respect rate limits
+      const batchSize = 10;
+      const batches = this.chunkArray(issues, batchSize);
+      
+      for (const batch of batches) {
+        const batchPromises = batch.map(async (issue) => {
+          try {
+            const issueNumber = parseInt(issue, 10);
+            if (isNaN(issueNumber)) {
+              throw new Error(`Invalid issue number: ${issue}`);
+            }
+
+            // Add team label
+            await this.addLabelsToIssue(issueNumber, [`team:${team}`]);
+
+            // Assign team members to issue (limit to 2-3 members to avoid overcrowding)
+            const assigneeLimit = Math.min(3, teamMembers.length);
+            const assignees = teamMembers
+              .slice(0, assigneeLimit)
+              .map(member => member.login);
+            
+            if (assignees.length > 0) {
+              await this.assignIssue(issueNumber, assignees);
+            }
+
+            // Add comment indicating team assignment
+            const comment = `🤖 **Team Assignment**: This issue has been assigned to team **${team}**\n\n` +
+                          `**Team Members**: ${teamMembers.map(m => `@${m.login}`).join(', ')}\n\n` +
+                          `*This is an automated assignment by WaveOps for wave coordination.*`;
+            
+            await this.addIssueComment(issueNumber, comment);
+
+            results.successful.push(issue);
+            return { issue, success: true };
+
+          } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            results.failed.push({
+              issue,
+              error: errorMessage
+            });
+            return { issue, success: false, error: errorMessage };
+          }
+        });
+
+        // Wait for batch to complete
+        await Promise.all(batchPromises);
+        
+        // Rate limiting between batches
+        await this.handleRateLimiting();
+      }
+
+      results.totalProcessed = issues.length;
+      results.successRate = results.successful.length / results.totalProcessed;
+
+      // If too many failures, throw error with partial results
+      if (results.failed.length > 0 && results.successRate < 0.5) {
+        throw new GitHubTeamAssignmentError(
+          `Team assignment partially failed: ${results.failed.length}/${results.totalProcessed} assignments failed`,
+          team,
+          results,
+          results.failed.length
+        );
+      }
+
+      return results;
+
+    } catch (error) {
+      if (error instanceof GitHubTeamAssignmentError) {
+        throw error;
+      }
+
+      if (error instanceof Error) {
+        if ('status' in error && (error as any).status === 403) {
+          throw new GitHubPermissionError(
+            'Insufficient permissions to assign team to issues',
+            'issues:write',
+            'issues',
+            'PATCH'
+          );
+        }
+
+        throw new GitHubAPIError(
+          `Failed to create team assignment: ${error.message}`,
+          'status' in error ? (error as any).status : 500,
+          'issues',
+          'PATCH',
+          { team, issues, error: error.message }
+        );
+      }
+
+      throw error;
+    }
+  }
+
+  // =================================================================
+  // PRIVATE HELPER METHODS FOR GITHUB API EXTENSIONS
+  // =================================================================
+
+  private async getTeamByName(teamName: string): Promise<any> {
+    const response = await this.octokit.rest.teams.getByName({
+      org: this.owner,
+      team_slug: teamName
+    });
+    return response.data;
+  }
+
+  private mapGitHubRoleToEnum(role: string): TeamMemberRole {
+    switch (role.toLowerCase()) {
+      case 'maintainer':
+        return TeamMemberRole.MAINTAINER;
+      case 'admin':
+        return TeamMemberRole.ADMIN;
+      default:
+        return TeamMemberRole.MEMBER;
+    }
+  }
+
+  private async getTeamMemberPermissions(username: string, teamName: string): Promise<any> {
+    try {
+      // Get organization membership to check permissions
+      const orgMembership = await this.octokit.rest.orgs.getMembershipForUser({
+        org: this.owner,
+        username: username
+      });
+
+      return {
+        can_create_repository: orgMembership.data.role === 'admin',
+        can_manage_team: orgMembership.data.role === 'admin',
+        can_assign_issues: true,
+        can_review_pull_requests: true,
+        admin: orgMembership.data.role === 'admin',
+        push: true,
+        pull: true
+      };
+    } catch {
+      return this.getDefaultPermissions();
+    }
+  }
+
+  private getDefaultPermissions(): any {
+    return {
+      can_create_repository: false,
+      can_manage_team: false,
+      can_assign_issues: true,
+      can_review_pull_requests: true,
+      admin: false,
+      push: true,
+      pull: true
+    };
+  }
+
+  private async handleRateLimiting(): Promise<void> {
+    try {
+      const rateLimit = await this.getRateLimit();
+      
+      if (rateLimit.remaining < 10) {
+        const waitTime = rateLimit.reset.getTime() - Date.now() + 1000; // Add 1 second buffer
+        if (waitTime > 0) {
+          console.warn(`Rate limit low (${rateLimit.remaining} requests remaining). Waiting ${waitTime}ms until reset.`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+        }
+      }
+    } catch {
+      // If rate limit check fails, add a small delay as precaution
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+  }
+
+  private async addLabelsToIssue(issueNumber: number, labels: string[]): Promise<void> {
+    await this.octokit.rest.issues.addLabels({
+      owner: this.owner,
+      repo: this.repo,
+      issue_number: issueNumber,
+      labels: labels
+    });
+  }
+
+  private async assignIssue(issueNumber: number, assignees: string[]): Promise<void> {
+    await this.octokit.rest.issues.addAssignees({
+      owner: this.owner,
+      repo: this.repo,
+      issue_number: issueNumber,
+      assignees: assignees
+    });
+  }
+
+  private chunkArray<T>(array: T[], chunkSize: number): T[][] {
+    const chunks: T[][] = [];
+    for (let i = 0; i < array.length; i += chunkSize) {
+      chunks.push(array.slice(i, i + chunkSize));
+    }
+    return chunks;
   }
 }
