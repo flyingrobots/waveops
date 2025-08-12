@@ -1,0 +1,22 @@
+#!/usr/bin/env sh
+
+# Exit immediately if --no-verify is detected in commit arguments
+if echo "$@" | grep -q "\--no-verify"; then
+  echo "❌ ERROR: --no-verify is not allowed. Code quality checks are mandatory."
+  echo "Use 'npm run lint:fix' to automatically fix linting issues."
+  exit 1
+fi
+
+# Check if this is a Claude Code pretool hook
+if [ "${CLAUDE_CODE_PRETOOL_HOOK}" = "true" ]; then
+  echo "🔍 Claude Code pre-tool hook: Running code quality checks..."
+fi
+
+# Run lint-staged (ESLint + tests on staged files)
+npx lint-staged
+
+# Ensure TypeScript compiles without errors
+echo "🔨 Checking TypeScript compilation..."
+npm run build
+
+echo "✅ All pre-commit checks passed!"
