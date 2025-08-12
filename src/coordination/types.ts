@@ -83,6 +83,12 @@ export interface CommandContext {
   availableTasks: string[];
   teamMemberships: Record<string, string>;
   currentState?: Record<string, unknown>;
+  // Enhanced context with GitHub API integration
+  githubConnected?: boolean;
+  lastDataRefresh?: Date;
+  dataSource: 'github_api' | 'static_fallback' | 'cache' | 'hybrid';
+  errors?: string[];
+  warnings?: string[];
 }
 
 export interface ValidationResult {
