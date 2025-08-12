@@ -1,0 +1,128 @@
+# WaveOps Configuration Example: Basic Web Application
+# This shows a typical configuration for a small to medium web development team
+
+coordination:
+  label: "coordination"
+  auto_close: true
+  require_all_critical: true  # Wave cannot complete if any critical task fails
+  
+notifications:
+  slack_webhook: "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK"
+  teams:
+    - frontend
+    - backend  
+    - qa
+  
+  # Optional: Email notifications
+  email:
+    enabled: false
+    smtp_host: "smtp.example.com"
+    smtp_port: 587
+    from_address: "waveops@yourcompany.com"
+
+wave_gates:
+  require_all_teams: true
+  allow_manual_override: false  # Prevent manual wave completion bypassing validation
+  timeout_hours: 48            # Auto-fail wave after 48 hours of no progress
+  
+  # Quality gates that must pass before wave completion
+  quality_gates:
+    - name: "all_tests_pass"
+      description: "All CI tests must be green"
+      required: true
+    - name: "code_review_approved" 
+      description: "All PRs must have approved reviews"
+      required: true
+    - name: "security_scan_clean"
+      description: "Security scans must show no high/critical issues"
+      required: false
+
+# Team-specific settings
+teams:
+  frontend:
+    leads:
+      - "sarah-frontend"
+      - "mike-ui"
+    required_reviewers: 1
+    auto_assign_reviews: true
+    
+  backend:
+    leads:
+      - "alex-backend"
+      - "jenny-api"
+    required_reviewers: 2  # Backend requires more thorough review
+    auto_assign_reviews: true
+    
+  qa:
+    leads:
+      - "david-qa"
+    required_reviewers: 1
+    auto_assign_reviews: false  # QA lead manually assigns reviews
+
+# GitHub integration settings
+github:
+  # Branch protection rules to enforce during waves
+  branch_protection:
+    require_status_checks: true
+    require_up_to_date_branches: true
+    required_status_checks:
+      - "ci/tests"
+      - "security/scan"
+      - "waveops/validation"
+    
+  # Auto-labeling for organization
+  labels:
+    wave_prefix: "wave:"      # Creates wave:1, wave:2, etc.
+    team_prefix: "team:"      # Creates team:frontend, team:backend, etc.
+    priority_labels: 
+      - "priority:critical"
+      - "priority:high"
+      - "priority:medium"
+      - "priority:low"
+
+# Monitoring and metrics
+monitoring:
+  track_cycle_time: true      # Measure time from task creation to completion
+  track_lead_time: true       # Measure time from idea to production
+  track_wave_duration: true   # Measure wave completion times
+  
+  # Alerts for team health
+  alerts:
+    - name: "wave_timeout"
+      condition: "wave_duration > 72h"
+      notification: "slack"
+    - name: "team_blocked"
+      condition: "team_blocked_duration > 24h" 
+      notification: "email"
+
+# Development workflow settings
+workflow:
+  # Automatically create task issues from tasks.yaml
+  auto_create_issues: true
+  
+  # Template for auto-created task issues
+  task_issue_template: |
+    **Task ID:** {{task_id}}
+    **Wave:** {{wave}}
+    **Team:** {{team}}
+    
+    ## Description
+    {{title}}
+    
+    ## Acceptance Criteria
+    {{#each acceptance}}
+    - [ ] {{this}}
+    {{/each}}
+    
+    ## Dependencies
+    {{#if depends_on}}
+    **Blocked by:** {{#each depends_on}}{{this}} {{/each}}
+    {{/if}}
+    
+    ## Priority
+    {{#if critical}}🔴 **Critical** - Wave cannot complete without this{{else}}⚪ Standard{{/if}}
+    
+  # PR naming convention enforcement
+  pr_naming:
+    pattern: "^({{task_id}}): .+"
+    example: "F001: Implement login form component"
