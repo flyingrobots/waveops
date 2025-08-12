@@ -1118,7 +1118,7 @@ export class EnterpriseSecurityManager {
           action: this.mapToDataAction(request.action),
           timestamp: new Date(),
           dataClassification: await this.getDataClassification(request.resource),
-          metadata: request.context
+          metadata: request.context as Record<string, unknown> | undefined
         });
       }
 

@@ -12,8 +12,8 @@ import {
   ResourceAlertThresholds,
   LifecycleConfig
 } from '../types';
-import { DatabaseConnectionPool } from './database-connection-pool';
-import { HttpConnectionPool } from './http-connection-pool';
+import { DatabaseConnectionPool, DatabaseConnection } from './database-connection-pool';
+import { HttpConnectionPool, HttpConnection } from './http-connection-pool';
 import { ResourceMonitor } from './resource-monitor';
 import { ResourceLifecycleManager } from './resource-lifecycle-manager';
 
@@ -124,7 +124,7 @@ export class ResourceManager extends EventEmitter {
     }
 
     try {
-      await pool.release(connection);
+      await pool.release(connection as DatabaseConnection & HttpConnection);
       this.emit('connection-released', { poolName, connectionId: this.getConnectionId(connection) });
     } catch (error) {
       this.emit('connection-error', { poolName, error });

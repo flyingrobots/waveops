@@ -6,7 +6,7 @@ import { EventEmitter } from 'events';
 import { ConnectionPoolConfig } from '../types';
 import { ConnectionPoolMetrics } from './resource-manager';
 
-interface HttpConnection {
+export interface HttpConnection {
   id: string;
   created: Date;
   lastUsed: Date;
