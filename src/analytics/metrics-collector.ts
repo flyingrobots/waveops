@@ -344,14 +344,58 @@ export class MetricsCollector implements IMetricsCollector {
   }
 
   private calculateVelocity(teamId: string, tasks: Task[]): number {
-    // Tasks completed per day (simplified)
-    const completedTasks = tasks.filter(task => task.critical || task.acceptance.length > 0);
-    return completedTasks.length; // In real implementation, divide by time period
+    // Calculate velocity: story points or task complexity completed per sprint (2 weeks)
+    const now = new Date();
+    const twoWeeksAgo = new Date(now.getTime() - (14 * 24 * 60 * 60 * 1000));
+    
+    // Find tasks completed in the last sprint (2 weeks)
+    const completedTasks = tasks.filter(task => {
+      const isCompleted = task.critical || task.acceptance.length > 0;
+      const wasCompletedRecently = new Date(task.updated_at || task.created_at) > twoWeeksAgo;
+      
+      return isCompleted && wasCompletedRecently;
+    });
+    
+    // Calculate velocity based on task complexity
+    const velocity = completedTasks.reduce((total, task) => {
+      let complexity = 1; // Base complexity
+      
+      // Increase complexity based on dependencies and acceptance criteria
+      complexity += task.depends_on.length * 0.5; // Each dependency adds complexity
+      complexity += task.acceptance.length * 0.3; // Each acceptance criterion adds complexity
+      
+      // Critical tasks have higher complexity
+      if (task.critical) {
+        complexity *= 1.5;
+      }
+      
+      return total + complexity;
+    }, 0);
+    
+    // Return velocity as complexity points per sprint
+    return Math.round(velocity * 100) / 100; // Round to 2 decimal places
   }
 
   private calculateThroughput(teamId: string, tasks: Task[]): number {
-    // Work items processed per time unit
-    return tasks.length; // Simplified - in reality, would be over time period
+    // Calculate real throughput: completed tasks per time unit (tasks per day)
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
+    
+    // Count tasks that were completed in the last 7 days
+    const recentlyCompletedTasks = tasks.filter(task => {
+      // A task is considered completed if it has acceptance criteria completed
+      // and was updated recently (indicating completion activity)
+      const hasCompletedCriteria = task.acceptance.length > 0;
+      const wasRecentlyUpdated = new Date(task.updated_at || task.created_at) > sevenDaysAgo;
+      
+      return hasCompletedCriteria && wasRecentlyUpdated;
+    });
+    
+    // Calculate throughput as tasks completed per day (over last 7 days)
+    const throughputPerDay = recentlyCompletedTasks.length / 7;
+    
+    // Return rounded throughput, minimum of 0
+    return Math.round(Math.max(0, throughputPerDay) * 100) / 100; // Round to 2 decimal places
   }
 
   private async calculateCommunicationOverhead(_teamId: string): Promise<number> {
