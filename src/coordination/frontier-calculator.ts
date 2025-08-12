@@ -250,7 +250,7 @@ export class FrontierCalculator {
 
     for (const task of tasks) {
       const node = dependencyGraph.get(task.id);
-      if (!node) continue;
+      if (!node) {continue;}
 
       switch (node.state) {
         case DependencyState.READY:
@@ -359,7 +359,7 @@ export class FrontierCalculator {
 
     for (const task of readyTasks) {
       const constraint = capacityConstraints.get(task.team);
-      if (!constraint) continue;
+      if (!constraint) {continue;}
 
       const currentUsage = teamUsage.get(task.team) || 0;
       
@@ -582,7 +582,7 @@ export class FrontierCalculator {
     dependencyGraph: Map<string, DependencyNode>,
     teamCapacities: Map<string, TeamCapacity>
   ): WaveBoundary[] {
-    if (candidates.length === 0) return [];
+    if (candidates.length === 0) {return [];}
 
     const scoredCandidates = candidates.map(candidate => ({
       boundary: candidate,

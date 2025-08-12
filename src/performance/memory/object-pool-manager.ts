@@ -166,7 +166,7 @@ export class ObjectPoolManager extends EventEmitter {
    */
   expandPool(poolName: string): boolean {
     const pool = this.pools.get(poolName);
-    if (!pool) return false;
+    if (!pool) {return false;}
 
     const newMaxSize = Math.min(
       pool.maxSize * pool.config.growthFactor,
@@ -187,7 +187,7 @@ export class ObjectPoolManager extends EventEmitter {
    */
   async cleanupPool(poolName: string): Promise<void> {
     const pool = this.pools.get(poolName);
-    if (!pool) return;
+    if (!pool) {return;}
 
     const now = Date.now();
     const objectsToDestroy: unknown[] = [];
@@ -234,7 +234,7 @@ export class ObjectPoolManager extends EventEmitter {
    */
   getPoolMetrics(poolName: string): PoolMetrics | null {
     const pool = this.pools.get(poolName);
-    if (!pool) return null;
+    if (!pool) {return null;}
 
     const totalBorrows = pool.borrowed;
     const hitRate = totalBorrows > 0 ? (pool.returned / totalBorrows) : 0;
@@ -336,10 +336,10 @@ export class ObjectPoolManager extends EventEmitter {
 
   private shouldKeepObject<T>(pool: PoolInstance<T>, obj: T): boolean {
     const creationTime = pool.creationTimes.get(obj);
-    if (!creationTime) return false;
+    if (!creationTime) {return false;}
 
     const age = Date.now() - creationTime;
-    if (age > pool.config.maxIdleTime) return false;
+    if (age > pool.config.maxIdleTime) {return false;}
 
     // Keep if pool is not over capacity
     return pool.available.length < pool.maxSize;

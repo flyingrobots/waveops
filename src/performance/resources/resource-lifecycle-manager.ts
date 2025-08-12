@@ -98,7 +98,7 @@ export class ResourceLifecycleManager extends EventEmitter {
    */
   async unregisterResource(resourceId: string): Promise<void> {
     const resource = this.managedResources.get(resourceId);
-    if (!resource) return;
+    if (!resource) {return;}
 
     try {
       await this.cleanupResource(resource);
@@ -142,7 +142,7 @@ export class ResourceLifecycleManager extends EventEmitter {
    * Perform cleanup of all managed resources
    */
   async cleanup(): Promise<void> {
-    if (this.managedResources.size === 0) return;
+    if (this.managedResources.size === 0) {return;}
 
     this.emit('cleanup-started', { resourceCount: this.managedResources.size });
 
@@ -313,7 +313,7 @@ export class ResourceLifecycleManager extends EventEmitter {
   }
 
   private async performPeriodicCleanup(): Promise<void> {
-    if (this.isShuttingDown || !this.config.cleanupOnExit) return;
+    if (this.isShuttingDown || !this.config.cleanupOnExit) {return;}
 
     const now = Date.now();
     const staleThreshold = 3600000; // 1 hour
@@ -327,7 +327,7 @@ export class ResourceLifecycleManager extends EventEmitter {
       }
     }
 
-    if (resourcesToCleanup.length === 0) return;
+    if (resourcesToCleanup.length === 0) {return;}
 
     this.emit('periodic-cleanup-started', { 
       staleResourceCount: resourcesToCleanup.length 
@@ -418,7 +418,7 @@ export class ResourceLifecycleManager extends EventEmitter {
   }
 
   private setupExitHandlers(): void {
-    if (!this.config.cleanupOnExit) return;
+    if (!this.config.cleanupOnExit) {return;}
 
     // Graceful shutdown handlers
     process.once('SIGINT', () => {
@@ -443,7 +443,7 @@ export class ResourceLifecycleManager extends EventEmitter {
   }
 
   private handleProcessExit(signal: string): void {
-    if (this.isShuttingDown) return;
+    if (this.isShuttingDown) {return;}
 
     this.emit('process-exit-signal', { signal });
 

@@ -215,7 +215,7 @@ export class RequestBatcher extends EventEmitter {
 
     this.pendingBatches.delete(group.key);
     
-    if (group.requests.length === 0) return;
+    if (group.requests.length === 0) {return;}
 
     try {
       const results = await this.performBatchExecution(group.requests);
@@ -431,9 +431,9 @@ export class RequestBatcher extends EventEmitter {
   private getSizeCategory(request: BatchRequest): string {
     const bodySize = request.body ? JSON.stringify(request.body).length : 0;
     
-    if (bodySize < 1024) return 'small';
-    if (bodySize < 10240) return 'medium';
-    if (bodySize < 102400) return 'large';
+    if (bodySize < 1024) {return 'small';}
+    if (bodySize < 10240) {return 'medium';}
+    if (bodySize < 102400) {return 'large';}
     return 'xlarge';
   }
 

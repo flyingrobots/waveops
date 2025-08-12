@@ -131,7 +131,7 @@ export class PerformanceMonitor extends EventEmitter {
    * Start performance monitoring
    */
   async start(): Promise<void> {
-    if (this.isMonitoring) return;
+    if (this.isMonitoring) {return;}
 
     this.isMonitoring = true;
     this.startTime = new Date();
@@ -162,14 +162,14 @@ export class PerformanceMonitor extends EventEmitter {
    * Stop performance monitoring
    */
   async stop(): Promise<void> {
-    if (!this.isMonitoring) return;
+    if (!this.isMonitoring) {return;}
 
     this.isMonitoring = false;
 
     // Stop timers
-    if (this.monitoringTimer) clearInterval(this.monitoringTimer);
-    if (this.profilingTimer) clearInterval(this.profilingTimer);
-    if (this.reportingTimer) clearInterval(this.reportingTimer);
+    if (this.monitoringTimer) {clearInterval(this.monitoringTimer);}
+    if (this.profilingTimer) {clearInterval(this.profilingTimer);}
+    if (this.reportingTimer) {clearInterval(this.reportingTimer);}
 
     // Stop components
     await Promise.all([

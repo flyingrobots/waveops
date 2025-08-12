@@ -9,8 +9,6 @@ import {
   TaskRequirement,
   WorkStealingCandidate,
   WorkStealingConfig,
-  WorkStealingReason,
-  WorkTransferRequest,
   WorkStealingError,
   WorkStealingErrorCode
 } from '../../src/types/index';

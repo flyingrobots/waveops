@@ -223,14 +223,14 @@ export class WorkerPool extends EventEmitter {
     
     // Cancel all pending tasks
     for (const task of this.pendingTasks) {
-      if (task.timeout) clearTimeout(task.timeout);
+      if (task.timeout) {clearTimeout(task.timeout);}
       task.reject(new Error('Worker pool force shutdown'));
     }
     this.pendingTasks.length = 0;
 
     // Cancel all active tasks
     for (const task of this.activeTasks.values()) {
-      if (task.timeout) clearTimeout(task.timeout);
+      if (task.timeout) {clearTimeout(task.timeout);}
       task.reject(new Error('Worker pool force shutdown'));
     }
     this.activeTasks.clear();
@@ -286,7 +286,7 @@ export class WorkerPool extends EventEmitter {
   }
 
   private canCreateWorker(): boolean {
-    if (this.isShuttingDown) return false;
+    if (this.isShuttingDown) {return false;}
     
     const maxWorkers = this.config.autoScaling?.enabled 
       ? this.config.autoScaling.maxWorkers 
@@ -297,7 +297,7 @@ export class WorkerPool extends EventEmitter {
 
   private async removeWorker(workerId: string): Promise<void> {
     const worker = this.workers.get(workerId);
-    if (!worker) return;
+    if (!worker) {return;}
 
     this.workers.delete(workerId);
     
@@ -351,7 +351,7 @@ export class WorkerPool extends EventEmitter {
       worker.tasksSuccessful++;
       worker.totalTaskTime += duration;
       
-      if (task.timeout) clearTimeout(task.timeout);
+      if (task.timeout) {clearTimeout(task.timeout);}
       this.activeTasks.delete(task.id);
       task.resolve(result);
       
@@ -368,7 +368,7 @@ export class WorkerPool extends EventEmitter {
       worker.totalTaskTime += duration;
       worker.errorCount++;
       
-      if (task.timeout) clearTimeout(task.timeout);
+      if (task.timeout) {clearTimeout(task.timeout);}
       this.activeTasks.delete(task.id);
       task.reject(error instanceof Error ? error : new Error(String(error)));
       
@@ -432,7 +432,7 @@ export class WorkerPool extends EventEmitter {
   }
 
   private startHealthChecks(): void {
-    if (!this.config.healthChecks?.enabled) return;
+    if (!this.config.healthChecks?.enabled) {return;}
 
     this.healthCheckTimer = setInterval(() => {
       this.performHealthChecks();
@@ -478,7 +478,7 @@ export class WorkerPool extends EventEmitter {
   }
 
   private startAutoScaling(): void {
-    if (!this.config.autoScaling?.enabled) return;
+    if (!this.config.autoScaling?.enabled) {return;}
 
     this.scaleTimer = setInterval(() => {
       this.performAutoScaling();
@@ -487,7 +487,7 @@ export class WorkerPool extends EventEmitter {
 
   private performAutoScaling(): void {
     const autoScaling = this.config.autoScaling;
-    if (!autoScaling?.enabled) return;
+    if (!autoScaling?.enabled) {return;}
 
     const metrics = this.getMetrics();
     const utilizationPercent = metrics.workerUtilization;

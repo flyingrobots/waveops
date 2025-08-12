@@ -52,7 +52,7 @@ export class TaskScheduler extends EventEmitter {
    * Start the task scheduler
    */
   async start(): Promise<void> {
-    if (this.isRunning) return;
+    if (this.isRunning) {return;}
 
     this.isRunning = true;
     
@@ -75,7 +75,7 @@ export class TaskScheduler extends EventEmitter {
    * Stop the task scheduler
    */
   async stop(): Promise<void> {
-    if (!this.isRunning) return;
+    if (!this.isRunning) {return;}
 
     this.isRunning = false;
 
@@ -127,7 +127,7 @@ export class TaskScheduler extends EventEmitter {
    */
   async cancelTask(taskId: string): Promise<boolean> {
     const task = this.scheduledTasks.get(taskId);
-    if (!task) return false;
+    if (!task) {return false;}
 
     // Clear timer if exists
     const timer = this.timers.get(taskId);
@@ -184,7 +184,7 @@ export class TaskScheduler extends EventEmitter {
    */
   setTaskEnabled(taskId: string, enabled: boolean): boolean {
     const task = this.scheduledTasks.get(taskId);
-    if (!task) return false;
+    if (!task) {return false;}
 
     task.enabled = enabled;
 
@@ -205,7 +205,7 @@ export class TaskScheduler extends EventEmitter {
   private initializeScheduledTasks(): void {
     // Initialize cron tasks
     for (const cronConfig of this.config.cron) {
-      if (!cronConfig.enabled) continue;
+      if (!cronConfig.enabled) {continue;}
 
       const task: ScheduledTask = {
         id: `cron-${cronConfig.name}`,
@@ -225,7 +225,7 @@ export class TaskScheduler extends EventEmitter {
 
     // Initialize interval tasks
     for (const intervalConfig of this.config.intervals) {
-      if (!intervalConfig.enabled) continue;
+      if (!intervalConfig.enabled) {continue;}
 
       const nextRun = intervalConfig.immediate 
         ? new Date() 

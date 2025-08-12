@@ -87,7 +87,7 @@ export class LeakDetector extends EventEmitter {
    * Stop tracking an object
    */
   untrackObject(type: string, obj: object): void {
-    if (!this.config.enabled) return;
+    if (!this.config.enabled) {return;}
 
     const tracker = this.trackers.get(type);
     if (tracker && tracker.instances.has(obj)) {
@@ -104,7 +104,7 @@ export class LeakDetector extends EventEmitter {
    * Detect memory leaks
    */
   async detectLeaks(): Promise<LeakSuspect[]> {
-    if (!this.config.enabled) return [];
+    if (!this.config.enabled) {return [];}
 
     const suspects: LeakSuspect[] = [];
     const now = new Date();
@@ -147,7 +147,7 @@ export class LeakDetector extends EventEmitter {
    */
   async cleanupSuspect(suspect: LeakSuspect): Promise<void> {
     const tracker = this.trackers.get(suspect.type);
-    if (!tracker) return;
+    if (!tracker) {return;}
 
     // Clear the tracker
     tracker.count = 0;
@@ -240,20 +240,20 @@ export class LeakDetector extends EventEmitter {
     const age = now.getTime() - tracker.firstSeen.getTime();
 
     // Must be tracking for at least 5 minutes
-    if (age < 5 * 60 * 1000) return false;
+    if (age < 5 * 60 * 1000) {return false;}
 
     // Check count threshold
-    if (tracker.count < 100) return false;
+    if (tracker.count < 100) {return false;}
 
     // Check size threshold
-    if (tracker.totalSize < this.config.detectionThreshold) return false;
+    if (tracker.totalSize < this.config.detectionThreshold) {return false;}
 
     // Check growth rate (objects per minute)
-    if (tracker.growthRate > 10) return true;
+    if (tracker.growthRate > 10) {return true;}
 
     // Check if count is consistently high
     const highCountDuration = now.getTime() - tracker.lastSeen.getTime();
-    if (tracker.count > 500 && highCountDuration > 10 * 60 * 1000) return true;
+    if (tracker.count > 500 && highCountDuration > 10 * 60 * 1000) {return true;}
 
     return false;
   }

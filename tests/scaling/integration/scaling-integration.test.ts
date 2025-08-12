@@ -933,7 +933,7 @@ function createMockAutoScaler(mockServices: MockServices): any {
 
 function createMockHAManager(mockServices: MockServices): any {
   let isHealthy = false;
-  let isLeader = false;
+  const isLeader = false;
 
   return {
     start: jest.fn().mockImplementation(async () => { isHealthy = true; }),

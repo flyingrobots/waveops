@@ -68,7 +68,7 @@ export class DatabaseConnectionPool extends EventEmitter {
    * Initialize the connection pool
    */
   async initialize(): Promise<void> {
-    if (this.isInitialized) return;
+    if (this.isInitialized) {return;}
 
     // Create minimum connections
     const createPromises: Promise<void>[] = [];
@@ -204,12 +204,12 @@ export class DatabaseConnectionPool extends EventEmitter {
     this.isClosing = true;
 
     // Clear timers
-    if (this.validationTimer) clearInterval(this.validationTimer);
-    if (this.cleanupTimer) clearInterval(this.cleanupTimer);
+    if (this.validationTimer) {clearInterval(this.validationTimer);}
+    if (this.cleanupTimer) {clearInterval(this.cleanupTimer);}
 
     // Reject pending requests
     for (const request of this.pendingRequests) {
-      if (request.timeout) clearTimeout(request.timeout);
+      if (request.timeout) {clearTimeout(request.timeout);}
       request.reject(new Error('Connection pool is closing'));
     }
     this.pendingRequests.length = 0;
@@ -238,12 +238,12 @@ export class DatabaseConnectionPool extends EventEmitter {
     this.isClosing = true;
 
     // Clear timers
-    if (this.validationTimer) clearInterval(this.validationTimer);
-    if (this.cleanupTimer) clearInterval(this.cleanupTimer);
+    if (this.validationTimer) {clearInterval(this.validationTimer);}
+    if (this.cleanupTimer) {clearInterval(this.cleanupTimer);}
 
     // Reject pending requests
     for (const request of this.pendingRequests) {
-      if (request.timeout) clearTimeout(request.timeout);
+      if (request.timeout) {clearTimeout(request.timeout);}
       request.reject(new Error('Connection pool force closed'));
     }
     this.pendingRequests.length = 0;
@@ -307,7 +307,7 @@ export class DatabaseConnectionPool extends EventEmitter {
 
   private async destroyConnection(connectionId: string, force: boolean = false): Promise<void> {
     const connection = this.connections.get(connectionId);
-    if (!connection) return;
+    if (!connection) {return;}
 
     // Remove from available connections
     const availableIndex = this.availableConnections.indexOf(connectionId);
@@ -368,7 +368,7 @@ export class DatabaseConnectionPool extends EventEmitter {
       const connectionId = this.availableConnections.pop()!;
       const connection = this.connections.get(connectionId);
 
-      if (request.timeout) clearTimeout(request.timeout);
+      if (request.timeout) {clearTimeout(request.timeout);}
 
       if (connection && connection.isValid) {
         connection.inUse = true;
@@ -409,7 +409,7 @@ export class DatabaseConnectionPool extends EventEmitter {
   }
 
   private startValidationTimer(): void {
-    if (!this.config.testInterval) return;
+    if (!this.config.testInterval) {return;}
 
     this.validationTimer = setInterval(() => {
       this.validateAllConnections().catch(error => {

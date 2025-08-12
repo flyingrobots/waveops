@@ -94,7 +94,7 @@ export class PerformanceProfiler extends EventEmitter {
    * Start the profiler system
    */
   async start(): Promise<void> {
-    if (!this.config.enabled || this.isRunning) return;
+    if (!this.config.enabled || this.isRunning) {return;}
 
     this.isRunning = true;
     this.emit('profiler-started');
@@ -104,7 +104,7 @@ export class PerformanceProfiler extends EventEmitter {
    * Stop the profiler system
    */
   async stop(): Promise<void> {
-    if (!this.isRunning) return;
+    if (!this.isRunning) {return;}
 
     this.isRunning = false;
 
@@ -212,7 +212,7 @@ export class PerformanceProfiler extends EventEmitter {
    */
   async cancelSession(sessionId: string): Promise<void> {
     const session = this.activeSessions.get(sessionId);
-    if (!session) return;
+    if (!session) {return;}
 
     session.status = 'cancelled';
     this.activeSessions.delete(sessionId);
@@ -461,7 +461,7 @@ export class PerformanceProfiler extends EventEmitter {
       'logRequest', 'handleError', 'sendResponse', 'closeConnection'
     ];
     
-    let totalTime = 1000;
+    const totalTime = 1000;
     
     for (let i = 0; i < Math.min(count, names.length); i++) {
       const selfTime = Math.random() * (totalTime / count);
@@ -520,7 +520,7 @@ export class PerformanceProfiler extends EventEmitter {
   }
 
   private generateMockCallTreeNodes(depth: number, maxChildren: number): unknown[] {
-    if (depth === 0) return [];
+    if (depth === 0) {return [];}
     
     const nodes = [];
     const childCount = Math.floor(Math.random() * maxChildren) + 1;

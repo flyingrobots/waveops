@@ -285,7 +285,7 @@ export class WorkStealingEngine {
           await this.deps.releaseCoordinationLock(lockId);
         } catch (error) {
           // Log but don't throw - lock will expire eventually
-          console.warn(`Failed to release coordination lock ${lockId}:`, error);
+          // Failed to release coordination lock - will expire eventually
         }
       }
     }
@@ -516,7 +516,7 @@ export class WorkStealingEngine {
 
   private calculateTransferSuccessRate(): number {
     const allHistory = Array.from(this.transferHistory.values()).flat();
-    if (allHistory.length === 0) return 1.0;
+    if (allHistory.length === 0) {return 1.0;}
     
     const recentHistory = allHistory.slice(-20); // Last 20 transfers
     return recentHistory.length; // Placeholder - would track success/failure in real implementation

@@ -18,12 +18,12 @@ export interface CoordinatorDependencies {
   githubClient: GitHubClient;
   validationEngine: ValidationEngine;
   getWaveState: () => Promise<WaveState>;
-  updateWaveState: (state: WaveState) => Promise<void>;
-  getTasks: (wave: number) => Promise<Task[]>;
-  updateTaskAssignment: (taskId: string, newTeam: string) => Promise<void>;
-  getTeamCapacity: (teamId: string) => Promise<number>;
-  getTeamSkills: (teamId: string) => Promise<Array<{skill: string, proficiency: number}>>;
-  notifyTeamOfChange: (teamId: string, message: string) => Promise<void>;
+  updateWaveState: (_state: WaveState) => Promise<void>;
+  getTasks: (_wave: number) => Promise<Task[]>;
+  updateTaskAssignment: (_taskId: string, _newTeam: string) => Promise<void>;
+  getTeamCapacity: (_teamId: string) => Promise<number>;
+  getTeamSkills: (_teamId: string) => Promise<Array<{skill: string, proficiency: number}>>;
+  notifyTeamOfChange: (_teamId: string, _message: string) => Promise<void>;
 }
 
 export interface CoordinationResult {
@@ -244,8 +244,8 @@ export class WaveCoordinator {
     }
 
     let complexity = 1;
-    if (task.critical) complexity += 0.5;
-    if (task.depends_on.length > 0) complexity += task.depends_on.length * 0.2;
+    if (task.critical) {complexity += 0.5;}
+    if (task.depends_on.length > 0) {complexity += task.depends_on.length * 0.2;}
     
     return complexity;
   }

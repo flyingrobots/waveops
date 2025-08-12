@@ -8,23 +8,22 @@ import {
   LoadBalanceMetrics,
   WorkStealingCandidate,
   WorkStealingConfig,
-  WorkStealingReason,
   WorkStealingError,
   WorkStealingErrorCode
 } from '../types/index';
 
 export interface LoadBalancerDependencies {
-  getTeamUtilization: (teamId: string) => Promise<TeamUtilization>;
+  getTeamUtilization: (_teamId: string) => Promise<TeamUtilization>;
   getAllTeams: () => Promise<string[]>;
-  getTasksByWave: (wave: number) => Promise<Task[]>;
-  estimateTaskDuration: (taskId: string, teamId: string) => Promise<number>;
-  findTeamMatches: (task: Task, excludeTeam?: string) => Promise<WorkStealingCandidate[]>;
+  getTasksByWave: (_wave: number) => Promise<Task[]>;
+  estimateTaskDuration: (_taskId: string, _teamId: string) => Promise<number>;
+  findTeamMatches: (_task: Task, _excludeTeam?: string) => Promise<WorkStealingCandidate[]>;
 }
 
 export class LoadBalancer {
   constructor(
-    private readonly deps: LoadBalancerDependencies,
-    private readonly config: WorkStealingConfig
+    private readonly _deps: LoadBalancerDependencies,
+    private readonly _config: WorkStealingConfig
   ) {}
 
   /**
@@ -95,7 +94,7 @@ export class LoadBalancer {
    * Calculates overall system utilization
    */
   private calculateTotalUtilization(utilizations: TeamUtilization[]): number {
-    if (utilizations.length === 0) return 0;
+    if (utilizations.length === 0) {return 0;}
     
     const totalCapacity = utilizations.reduce((sum, u) => sum + u.capacity, 0);
     const totalActive = utilizations.reduce((sum, u) => sum + u.activeTasks, 0);
@@ -107,7 +106,7 @@ export class LoadBalancer {
    * Calculates variance in utilization across teams
    */
   private calculateUtilizationVariance(utilizations: TeamUtilization[]): number {
-    if (utilizations.length <= 1) return 0;
+    if (utilizations.length <= 1) {return 0;}
 
     const mean = utilizations.reduce((sum, u) => sum + u.utilizationRate, 0) / utilizations.length;
     const squaredDeviations = utilizations.map(u => Math.pow(u.utilizationRate - mean, 2));
@@ -163,7 +162,6 @@ export class LoadBalancer {
     }
 
     try {
-      const metrics = await this.calculateLoadMetrics(wave);
       const predictions = await this.predictUtilizationTrends(wave);
       
       const proactiveRecommendations: WorkStealingCandidate[] = [];
@@ -241,8 +239,8 @@ export class LoadBalancer {
         
         // Prioritize moving non-critical tasks first, then less critical ones
         const tasksByPriority = teamTasks.sort((a, b) => {
-          if (a.critical && !b.critical) return 1;
-          if (!a.critical && b.critical) return -1;
+          if (a.critical && !b.critical) {return 1;}
+          if (!a.critical && b.critical) {return -1;}
           return a.depends_on.length - b.depends_on.length;
         });
 

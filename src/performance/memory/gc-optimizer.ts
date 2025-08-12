@@ -55,7 +55,7 @@ export class GCOptimizer extends EventEmitter {
    * Optimize garbage collection based on strategy
    */
   async optimize(): Promise<void> {
-    if (!this.config.enabled) return;
+    if (!this.config.enabled) {return;}
 
     const memUsage = process.memoryUsage();
     const heapUsagePercent = (memUsage.heapUsed / memUsage.heapTotal) * 100;
@@ -126,7 +126,7 @@ export class GCOptimizer extends EventEmitter {
    * Set GC parameters (Node.js specific)
    */
   setGCParameters(): void {
-    if (!this.config.enabled) return;
+    if (!this.config.enabled) {return;}
 
     // These would be applied via V8 flags or at startup
     const params = {
@@ -217,7 +217,7 @@ export class GCOptimizer extends EventEmitter {
   }
 
   private startOptimization(): void {
-    if (this.config.strategy !== GCStrategy.ADAPTIVE) return;
+    if (this.config.strategy !== GCStrategy.ADAPTIVE) {return;}
 
     // For adaptive strategy, optimize periodically
     this.optimizationTimer = setInterval(() => {
@@ -294,7 +294,7 @@ export class GCOptimizer extends EventEmitter {
   }
 
   private updateMetricsFromHistory(): void {
-    if (this.gcHistory.length === 0) return;
+    if (this.gcHistory.length === 0) {return;}
 
     // Update heap size estimates (would need actual measurements)
     const memUsage = process.memoryUsage();

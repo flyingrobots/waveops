@@ -430,7 +430,7 @@ export class MultiRepositoryCoordinator {
   ): Promise<void> {
     const initPromises = wave.participatingRepositories.map(async (repoId) => {
       const client = this.dependencies.repositoryClients.get(repoId);
-      if (!client) return;
+      if (!client) {return;}
 
       try {
         // Initialize repository for cross-repo coordination
@@ -506,7 +506,7 @@ export class MultiRepositoryCoordinator {
     // Coordinate wave execution across all repositories
     const executionPromises = wave.participatingRepositories.map(async (repoId) => {
       const client = this.dependencies.repositoryClients.get(repoId);
-      if (!client) return;
+      if (!client) {return;}
 
       return this.executeRepositoryWave(repoId, wave);
     });
@@ -586,7 +586,7 @@ export class MultiRepositoryCoordinator {
     let syncProgress = 0;
     let syncCount = 0;
     for (const [_, status] of synchronizationStatus) {
-      if (status === SyncPointStatus.SYNCHRONIZED) syncProgress += 1;
+      if (status === SyncPointStatus.SYNCHRONIZED) {syncProgress += 1;}
       syncCount += 1;
     }
     if (syncCount > 0) {
@@ -598,7 +598,7 @@ export class MultiRepositoryCoordinator {
     let depProgress = 0;
     let depCount = 0;
     for (const [_, status] of dependencyStatus) {
-      if (status === CrossDepStatus.SATISFIED) depProgress += 1;
+      if (status === CrossDepStatus.SATISFIED) {depProgress += 1;}
       depCount += 1;
     }
     if (depCount > 0) {

@@ -305,7 +305,7 @@ export class NetworkOptimizer extends EventEmitter {
   }
 
   private shouldBatch(request: NetworkRequest): boolean {
-    if (!this.config.github.batchingConfig.enabled) return false;
+    if (!this.config.github.batchingConfig.enabled) {return false;}
     
     // Check if request is batchable based on endpoint patterns
     const batchablePatterns = ['/repos/', '/issues/', '/pulls/'];
@@ -313,7 +313,7 @@ export class NetworkOptimizer extends EventEmitter {
   }
 
   private shouldRetry(request: NetworkRequest, error: unknown): boolean {
-    if (!request.retryable) return false;
+    if (!request.retryable) {return false;}
     
     const retryStrategy = this.config.retryStrategies.github;
     const isRetryableError = this.isRetryableError(error, retryStrategy.retryableErrors);

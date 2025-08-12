@@ -10,6 +10,15 @@ export default [
       parserOptions: {
         ecmaVersion: 2022,
         sourceType: 'module'
+      },
+      globals: {
+        'setTimeout': 'readonly',
+        'setInterval': 'readonly',
+        'clearTimeout': 'readonly',
+        'clearInterval': 'readonly',
+        'process': 'readonly',
+        'Buffer': 'readonly',
+        '__dirname': 'readonly'
       }
     },
     plugins: {
@@ -82,6 +91,7 @@ export default [
       globals: {
         'describe': 'readonly',
         'it': 'readonly',
+        'test': 'readonly',
         'expect': 'readonly',
         'jest': 'readonly',
         'beforeEach': 'readonly',
@@ -94,7 +104,11 @@ export default [
         'require': 'readonly',
         'module': 'readonly',
         'Buffer': 'readonly',
-        'NodeJS': 'readonly'
+        'NodeJS': 'readonly',
+        'setTimeout': 'readonly',
+        'setInterval': 'readonly',
+        'clearTimeout': 'readonly',
+        'clearInterval': 'readonly'
       }
     },
     plugins: {

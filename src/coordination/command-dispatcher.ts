@@ -3,13 +3,13 @@
  */
 
 import { CommandParser, ICommandParser } from './command-parser';
-import { CommandType, ParsedCommand, CommandContext, ValidationResult, ParseResult } from './types';
+import { CommandType, ParsedCommand, CommandContext } from './types';
 import { CommandExecutionError } from './errors';
-import { WebhookEvent, ParsedComment } from '../github/webhook-handler';
+import { WebhookEvent } from '../github/webhook-handler';
 
 export interface ICommandDispatcher {
-  processWebhookCommand(event: WebhookEvent): Promise<CommandDispatchResult>;
-  executeCommand(command: ParsedCommand, context: CommandContext): Promise<CommandExecutionResult>;
+  processWebhookCommand(_event: WebhookEvent): Promise<CommandDispatchResult>;
+  executeCommand(_command: ParsedCommand, _context: CommandContext): Promise<CommandExecutionResult>;
 }
 
 export interface CommandDispatchResult {
@@ -265,7 +265,7 @@ export class CommandDispatcher implements ICommandDispatcher {
   /**
    * Command execution handlers
    */
-  private async executeWaveStart(command: ParsedCommand, context: CommandContext): Promise<CommandExecutionResult> {
+  private async executeWaveStart(_command: ParsedCommand, _context: CommandContext): Promise<CommandExecutionResult> {
     // In real implementation, would:
     // 1. Update wave state to 'started'
     // 2. Notify teams
@@ -284,7 +284,7 @@ export class CommandDispatcher implements ICommandDispatcher {
     };
   }
 
-  private async executeTeamAssign(command: ParsedCommand, context: CommandContext): Promise<CommandExecutionResult> {
+  private async executeTeamAssign(_command: ParsedCommand, _context: CommandContext): Promise<CommandExecutionResult> {
     const params = command.parameters as any;
     
     return {
@@ -299,7 +299,7 @@ export class CommandDispatcher implements ICommandDispatcher {
     };
   }
 
-  private async executeTaskAssign(command: ParsedCommand, context: CommandContext): Promise<CommandExecutionResult> {
+  private async executeTaskAssign(_command: ParsedCommand, _context: CommandContext): Promise<CommandExecutionResult> {
     const params = command.parameters as any;
     
     return {
@@ -314,7 +314,7 @@ export class CommandDispatcher implements ICommandDispatcher {
     };
   }
 
-  private async executeTeamBlock(command: ParsedCommand, context: CommandContext): Promise<CommandExecutionResult> {
+  private async executeTeamBlock(_command: ParsedCommand, _context: CommandContext): Promise<CommandExecutionResult> {
     const params = command.parameters as any;
     
     return {
@@ -329,7 +329,7 @@ export class CommandDispatcher implements ICommandDispatcher {
     };
   }
 
-  private async executeTeamSync(command: ParsedCommand, context: CommandContext): Promise<CommandExecutionResult> {
+  private async executeTeamSync(_command: ParsedCommand, _context: CommandContext): Promise<CommandExecutionResult> {
     const params = command.parameters as any;
     
     return {
@@ -344,7 +344,7 @@ export class CommandDispatcher implements ICommandDispatcher {
     };
   }
 
-  private async executeLoadBalance(command: ParsedCommand, context: CommandContext): Promise<CommandExecutionResult> {
+  private async executeLoadBalance(_command: ParsedCommand, _context: CommandContext): Promise<CommandExecutionResult> {
     const params = command.parameters as any;
     
     return {
@@ -359,7 +359,7 @@ export class CommandDispatcher implements ICommandDispatcher {
     };
   }
 
-  private async executeBatchOperation(command: ParsedCommand, context: CommandContext): Promise<CommandExecutionResult> {
+  private async executeBatchOperation(_command: ParsedCommand, _context: CommandContext): Promise<CommandExecutionResult> {
     const params = command.parameters as { commands: ParsedCommand[] };
     const results: CommandExecutionResult[] = [];
     

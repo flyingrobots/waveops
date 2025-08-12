@@ -12,13 +12,8 @@ import {
   DashboardConfig,
   ObservabilityError,
   ObservabilityComponent,
-  TracingProvider,
-  MetricsProvider,
-  AlertProvider,
   LogLevel,
-  AlertRule,
-  NotificationChannel,
-  MetricDefinition
+  AlertRule
 } from './types';
 
 export interface ObservabilityDependencies {
@@ -31,11 +26,11 @@ export interface ObservabilityDependencies {
 }
 
 export interface TracingProviderInterface {
-  initialize(config: TracingConfig): Promise<void>;
-  createSpan(name: string, parentContext?: SpanContext): Span;
-  finishSpan(span: Span): void;
-  addSpanAttribute(span: Span, key: string, value: string | number | boolean): void;
-  addSpanEvent(span: Span, name: string, attributes?: Record<string, unknown>): void;
+  initialize(_config: TracingConfig): Promise<void>;
+  createSpan(_name: string, _parentContext?: SpanContext): Span;
+  finishSpan(_span: Span): void;
+  addSpanAttribute(_span: Span, _key: string, _value: string | number | boolean): void;
+  addSpanEvent(_span: Span, _name: string, _attributes?: Record<string, unknown>): void;
   getActiveSpan(): Span | null;
   shutdown(): Promise<void>;
 }
@@ -279,7 +274,7 @@ export class EnterpriseObservabilityManager {
    * Record coordination metrics
    */
   recordCoordinationMetrics(metrics: CoordinationMetrics): void {
-    if (!this.initialized) return;
+    if (!this.initialized) {return;}
 
     const labels = {
       instanceId: this.instanceId,
@@ -299,7 +294,7 @@ export class EnterpriseObservabilityManager {
    * Record request metrics
    */
   recordRequestMetrics(metrics: RequestMetrics): void {
-    if (!this.initialized) return;
+    if (!this.initialized) {return;}
 
     const labels = {
       instanceId: this.instanceId,
@@ -320,7 +315,7 @@ export class EnterpriseObservabilityManager {
    * Record system metrics
    */
   recordSystemMetrics(metrics: SystemMetrics): void {
-    if (!this.initialized) return;
+    if (!this.initialized) {return;}
 
     const labels = { instanceId: this.instanceId };
 
@@ -345,7 +340,7 @@ export class EnterpriseObservabilityManager {
     message: string,
     context?: Record<string, unknown>
   ): Promise<void> {
-    if (!this.initialized) return;
+    if (!this.initialized) {return;}
 
     try {
       // Create alert rule dynamically

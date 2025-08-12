@@ -732,7 +732,7 @@ export class RollingFrontier {
 
     for (const taskId of readyTasks) {
       const node = this.frontierState.dependencyGraph.get(taskId);
-      if (!node) continue;
+      if (!node) {continue;}
 
       // Check if task can be promoted to earlier wave
       const currentWave = node.wave;
@@ -766,7 +766,7 @@ export class RollingFrontier {
    */
   private findEarliestPossibleWave(taskId: string): number {
     const node = this.frontierState.dependencyGraph.get(taskId);
-    if (!node) return 1;
+    if (!node) {return 1;}
 
     let maxDepWave = 0;
     for (const depId of node.dependsOn) {

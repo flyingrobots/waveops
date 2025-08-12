@@ -8,7 +8,6 @@ import {
   PerformancePattern,
   WavePrediction,
   RiskFactor,
-  BottleneckInfo,
   AnalyticsConfig,
   WarpDivergenceStats,
   LatencyStats,
@@ -17,11 +16,11 @@ import {
 import { PerformanceAnalysisError, DataValidationError, PredictionError } from './errors';
 
 interface IPerformanceAnalyzer {
-  detectPerformancePatterns(waveMetrics: WaveMetrics[], config: AnalyticsConfig): Promise<PerformancePattern[]>;
-  predictWaveCompletion(currentWave: WaveMetrics, historicalData: WaveMetrics[], tasks: Task[]): Promise<WavePrediction>;
-  analyzeTeamPerformance(teamMetrics: TeamMetrics[], windowSize: number): Promise<PerformancePattern[]>;
-  identifyAnomalies(currentMetrics: WaveMetrics, baselineMetrics: WaveMetrics[]): Promise<PerformancePattern[]>;
-  calculateTrends(metrics: WaveMetrics[], timeWindow: number): Promise<Record<string, number>>;
+  detectPerformancePatterns(_waveMetrics: WaveMetrics[], _config: AnalyticsConfig): Promise<PerformancePattern[]>;
+  predictWaveCompletion(_currentWave: WaveMetrics, _historicalData: WaveMetrics[], _tasks: Task[]): Promise<WavePrediction>;
+  analyzeTeamPerformance(_teamMetrics: TeamMetrics[], _windowSize: number): Promise<PerformancePattern[]>;
+  identifyAnomalies(_currentMetrics: WaveMetrics, _baselineMetrics: WaveMetrics[]): Promise<PerformancePattern[]>;
+  calculateTrends(_metrics: WaveMetrics[], _timeWindow: number): Promise<Record<string, number>>;
 }
 
 export class PerformanceAnalyzer implements IPerformanceAnalyzer {
@@ -339,7 +338,7 @@ export class PerformanceAnalyzer implements IPerformanceAnalyzer {
   }
 
   private async detectAnomalousPatterns(waveMetrics: WaveMetrics[]): Promise<PerformancePattern[]> {
-    if (waveMetrics.length < 3) return [];
+    if (waveMetrics.length < 3) {return [];}
 
     const anomalies: PerformancePattern[] = [];
 
@@ -487,7 +486,7 @@ export class PerformanceAnalyzer implements IPerformanceAnalyzer {
     return factors;
   }
 
-  private async calculateCriticalPathDuration(tasks: Task[], waveMetrics: WaveMetrics): Promise<number> {
+  private async calculateCriticalPathDuration(_tasks: Task[], _waveMetrics: WaveMetrics): Promise<number> {
     // Simplified critical path calculation
     const criticalTasks = tasks.filter(task => waveMetrics.criticalPath.includes(task.id));
     
@@ -600,7 +599,7 @@ export class PerformanceAnalyzer implements IPerformanceAnalyzer {
     }
   }
 
-  private calculateOptimalStartTime(estimatedCompletion: Date, riskFactors: RiskFactor[]): Date | undefined {
+  private calculateOptimalStartTime(_estimatedCompletion: Date, _riskFactors: RiskFactor[]): Date | undefined {
     // Calculate buffer time based on risk factors
     const totalRisk = riskFactors.reduce((sum, risk) => sum + (risk.probability * risk.impact), 0);
     const bufferTime = totalRisk * 0.5; // 50% buffer for identified risks
@@ -615,7 +614,7 @@ export class PerformanceAnalyzer implements IPerformanceAnalyzer {
     }
   }
 
-  private validatePredictionInputs(currentWave: WaveMetrics, historicalData: WaveMetrics[], tasks: Task[]): void {
+  private validatePredictionInputs(_currentWave: WaveMetrics, _historicalData: WaveMetrics[], _tasks: Task[]): void {
     if (!currentWave) {
       throw new DataValidationError('Current wave metrics are required');
     }
@@ -712,7 +711,7 @@ export class PerformanceAnalyzer implements IPerformanceAnalyzer {
   }
 
   private calculateLinearTrend(values: number[]): number {
-    if (values.length < 2) return 0;
+    if (values.length < 2) {return 0;}
 
     const n = values.length;
     const xSum = n * (n - 1) / 2;
@@ -726,14 +725,14 @@ export class PerformanceAnalyzer implements IPerformanceAnalyzer {
 
   private calculateAverageFirstPassCI(waveMetrics: WaveMetrics): number {
     const teamMetrics = Object.values(waveMetrics.teamMetrics);
-    if (teamMetrics.length === 0) return 0;
+    if (teamMetrics.length === 0) {return 0;}
 
     const total = teamMetrics.reduce((sum, team) => sum + team.firstPassCI, 0);
     return total / teamMetrics.length;
   }
 
   private calculateStatistics(values: number[]): { mean: number; stdDev: number } {
-    if (values.length === 0) return { mean: 0, stdDev: 0 };
+    if (values.length === 0) {return { mean: 0, stdDev: 0 };}
 
     const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
     const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
@@ -743,14 +742,14 @@ export class PerformanceAnalyzer implements IPerformanceAnalyzer {
   }
 
   private calculateVariance(values: number[]): number {
-    if (values.length === 0) return 0;
+    if (values.length === 0) {return 0;}
 
     const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
     return values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
   }
 
   private calculateMedian(values: number[]): number {
-    if (values.length === 0) return 0;
+    if (values.length === 0) {return 0;}
     
     const sorted = [...values].sort((a, b) => a - b);
     const middle = Math.floor(sorted.length / 2);
@@ -774,7 +773,7 @@ export class PerformanceAnalyzer implements IPerformanceAnalyzer {
     return groups;
   }
 
-  private generateCacheKey(type: string, data: unknown): string {
+  private generateCacheKey(_type: string, _data: unknown): string {
     // Simple cache key generation based on data hash
     return `${type}_${JSON.stringify(data).length}_${Date.now()}`;
   }

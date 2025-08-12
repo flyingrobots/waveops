@@ -224,7 +224,7 @@ export class RedisCache extends EventEmitter {
       async get(key: string): Promise<string | null> {
         cleanupExpired();
         const data = store.get(key);
-        if (!data) return null;
+        if (!data) {return null;}
         
         if (data.ttl > 0 && Date.now() - data.setAt > data.ttl * 1000) {
           store.delete(key);
@@ -257,8 +257,8 @@ export class RedisCache extends EventEmitter {
 
       async ttl(key: string): Promise<number> {
         const data = store.get(key);
-        if (!data) return -2;
-        if (data.ttl === 0) return -1;
+        if (!data) {return -2;}
+        if (data.ttl === 0) {return -1;}
         
         const remaining = data.ttl - Math.floor((Date.now() - data.setAt) / 1000);
         return remaining > 0 ? remaining : -2;
@@ -287,7 +287,7 @@ export class RedisCache extends EventEmitter {
   }
 
   private setupClientEventHandlers(): void {
-    if (!this.client) return;
+    if (!this.client) {return;}
 
     this.client.on('error', (error) => {
       this.connected = false;

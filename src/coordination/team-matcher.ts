@@ -240,15 +240,15 @@ export class TeamMatcher {
     const availableTeams = new Set(teams);
     const tasksToAssign = [...tasks].sort((a, b) => {
       // Prioritize critical tasks
-      if (a.critical && !b.critical) return -1;
-      if (!a.critical && b.critical) return 1;
+      if (a.critical && !b.critical) {return -1;}
+      if (!a.critical && b.critical) {return 1;}
       // Then by dependency count (more dependencies first)
       return b.depends_on.length - a.depends_on.length;
     });
 
     for (const task of tasksToAssign) {
       const taskCompatibility = compatibilityMatrix.get(task.id);
-      if (!taskCompatibility) continue;
+      if (!taskCompatibility) {continue;}
 
       // Find the best available team for this task
       let bestTeam = '';

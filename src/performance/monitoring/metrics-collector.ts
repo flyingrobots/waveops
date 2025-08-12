@@ -69,7 +69,7 @@ export class MetricsCollector extends EventEmitter {
    * Start metrics collection
    */
   async start(): Promise<void> {
-    if (this.isRunning) return;
+    if (this.isRunning) {return;}
 
     this.isRunning = true;
 
@@ -91,15 +91,15 @@ export class MetricsCollector extends EventEmitter {
    * Stop metrics collection
    */
   async stop(): Promise<void> {
-    if (!this.isRunning) return;
+    if (!this.isRunning) {return;}
 
     this.isRunning = false;
 
     // Clear timers
-    if (this.collectionTimer) clearInterval(this.collectionTimer);
-    if (this.aggregationTimer) clearInterval(this.aggregationTimer);
-    if (this.exportTimer) clearInterval(this.exportTimer);
-    if (this.cleanupTimer) clearInterval(this.cleanupTimer);
+    if (this.collectionTimer) {clearInterval(this.collectionTimer);}
+    if (this.aggregationTimer) {clearInterval(this.aggregationTimer);}
+    if (this.exportTimer) {clearInterval(this.exportTimer);}
+    if (this.cleanupTimer) {clearInterval(this.cleanupTimer);}
 
     // Final export
     if (this.config.exporters && this.config.exporters.length > 0) {
@@ -241,7 +241,7 @@ export class MetricsCollector extends EventEmitter {
   }
 
   private recordMetricsFromObject(prefix: string, obj: unknown, timestamp: Date): void {
-    if (!obj || typeof obj !== 'object') return;
+    if (!obj || typeof obj !== 'object') {return;}
 
     for (const [key, value] of Object.entries(obj)) {
       const metricName = `${prefix}.${key}`;
@@ -255,7 +255,7 @@ export class MetricsCollector extends EventEmitter {
   }
 
   private startAggregation(): void {
-    if (!this.config.aggregation) return;
+    if (!this.config.aggregation) {return;}
 
     this.aggregationTimer = setInterval(() => {
       this.performAggregation();
@@ -263,7 +263,7 @@ export class MetricsCollector extends EventEmitter {
   }
 
   private performAggregation(): void {
-    if (!this.config.aggregation) return;
+    if (!this.config.aggregation) {return;}
 
     const now = new Date();
     
@@ -277,7 +277,7 @@ export class MetricsCollector extends EventEmitter {
           v.timestamp >= windowStart && v.timestamp < windowEnd
         );
         
-        if (windowValues.length === 0) continue;
+        if (windowValues.length === 0) {continue;}
         
         // Apply aggregation functions
         for (const func of this.config.aggregation.functions) {
@@ -351,7 +351,7 @@ export class MetricsCollector extends EventEmitter {
   }
 
   private startExporting(): void {
-    if (!this.config.exporters || this.config.exporters.length === 0) return;
+    if (!this.config.exporters || this.config.exporters.length === 0) {return;}
 
     this.exportTimer = setInterval(() => {
       this.exportMetrics().catch(error => {

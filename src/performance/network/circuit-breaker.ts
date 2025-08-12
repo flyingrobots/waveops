@@ -146,10 +146,10 @@ export class CircuitBreaker extends EventEmitter {
   }
 
   private shouldOpen(): boolean {
-    if (!this.config.enabled) return false;
+    if (!this.config.enabled) {return false;}
 
     // Check if we have enough requests to make a decision
-    if (this.totalRequests < 10) return false;
+    if (this.totalRequests < 10) {return false;}
 
     // Check failure rate
     const failureRate = this.calculateFailureRate();
@@ -157,7 +157,7 @@ export class CircuitBreaker extends EventEmitter {
   }
 
   private shouldAttemptReset(): boolean {
-    if (!this.nextRetryTime) return false;
+    if (!this.nextRetryTime) {return false;}
     return Date.now() >= this.nextRetryTime.getTime();
   }
 
@@ -206,7 +206,7 @@ export class CircuitBreaker extends EventEmitter {
   }
 
   private calculateFailureRate(): number {
-    if (this.totalRequests === 0) return 0;
+    if (this.totalRequests === 0) {return 0;}
     return (this.failureCount / this.totalRequests) * 100;
   }
 

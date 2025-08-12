@@ -214,7 +214,7 @@ export class InMemoryCache extends EventEmitter {
         return entry.metadata.createdAt.getTime() * (priority === CachePriority.IMMORTAL ? 0.1 : 1);
       
       case EvictionStrategy.TTL_BASED:
-        if (!entry.expiresAt) return age;
+        if (!entry.expiresAt) {return age;}
         const ttlRemaining = entry.expiresAt.getTime() - now.getTime();
         return ttlRemaining * (priority === CachePriority.IMMORTAL ? 0.1 : 1);
       
