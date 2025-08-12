@@ -488,7 +488,7 @@ export class PerformanceAnalyzer implements IPerformanceAnalyzer {
 
   private async calculateCriticalPathDuration(_tasks: Task[], _waveMetrics: WaveMetrics): Promise<number> {
     // Simplified critical path calculation
-    const criticalTasks = tasks.filter(task => waveMetrics.criticalPath.includes(task.id));
+    const criticalTasks = _tasks.filter(task => _waveMetrics.criticalPath.includes(task.id));
     
     // Estimate 8 hours per critical task with some parallelization
     const baseDuration = criticalTasks.length * 8 * 60 * 60 * 1000; // 8 hours in ms
@@ -601,10 +601,10 @@ export class PerformanceAnalyzer implements IPerformanceAnalyzer {
 
   private calculateOptimalStartTime(_estimatedCompletion: Date, _riskFactors: RiskFactor[]): Date | undefined {
     // Calculate buffer time based on risk factors
-    const totalRisk = riskFactors.reduce((sum, risk) => sum + (risk.probability * risk.impact), 0);
+    const totalRisk = _riskFactors.reduce((sum, risk) => sum + (risk.probability * risk.impact), 0);
     const bufferTime = totalRisk * 0.5; // 50% buffer for identified risks
     
-    return new Date(estimatedCompletion.getTime() - bufferTime);
+    return new Date(_estimatedCompletion.getTime() - bufferTime);
   }
 
   // Utility methods for statistical calculations
@@ -615,10 +615,10 @@ export class PerformanceAnalyzer implements IPerformanceAnalyzer {
   }
 
   private validatePredictionInputs(_currentWave: WaveMetrics, _historicalData: WaveMetrics[], _tasks: Task[]): void {
-    if (!currentWave) {
+    if (!_currentWave) {
       throw new DataValidationError('Current wave metrics are required');
     }
-    if (!tasks || tasks.length === 0) {
+    if (!_tasks || _tasks.length === 0) {
       throw new DataValidationError('Tasks array cannot be empty');
     }
   }
@@ -775,6 +775,6 @@ export class PerformanceAnalyzer implements IPerformanceAnalyzer {
 
   private generateCacheKey(_type: string, _data: unknown): string {
     // Simple cache key generation based on data hash
-    return `${type}_${JSON.stringify(data).length}_${Date.now()}`;
+    return `${_type}_${JSON.stringify(_data).length}_${Date.now()}`;
   }
 }

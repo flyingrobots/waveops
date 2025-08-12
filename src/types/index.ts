@@ -26,6 +26,8 @@ export interface Task {
   depends_on: string[];
   acceptance: string[];
   critical: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 // GitHub API types
@@ -72,7 +74,9 @@ export interface GitHubIssue {
   };
   created_at: string;
   updated_at: string;
+  closed_at?: string;
   labels?: ({ name?: string } | string)[];
+  assignees?: { login: string }[];
 }
 
 export interface GitHubPullRequest {
@@ -98,6 +102,8 @@ export interface GitHubCommitChecks {
   statuses: GitHubCommitStatus[];
   checkRuns: GitHubCheckRun[];
   state: 'pending' | 'success' | 'failure' | 'error';
+  conclusion: 'success' | 'failure' | 'neutral' | 'cancelled' | 'skipped' | 'timed_out' | null;
+  total_count: number;
 }
 
 export interface RateLimitInfo {
@@ -241,6 +247,8 @@ export interface SystemMetrics {
 }
 
 export interface AnalyticsConfig {
+  owner: string; // GitHub repository owner
+  repo: string; // GitHub repository name
   collectionInterval: number; // milliseconds
   retentionPeriod: number; // milliseconds
   analysisWindowSize: number; // number of waves to analyze

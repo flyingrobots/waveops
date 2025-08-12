@@ -13,7 +13,10 @@ import {
   ObservabilityError,
   ObservabilityComponent,
   LogLevel,
-  AlertRule
+  AlertRule,
+  MetricTypeDefinition,
+  ComparisonOperator,
+  AlertSeverity
 } from './types';
 
 export interface ObservabilityDependencies {
@@ -119,6 +122,13 @@ export interface LogContext {
   operationId?: string;
   component?: string;
   action?: string;
+  instanceId?: string;
+  alertId?: string;
+  severity?: string;
+  title?: string;
+  message?: string;
+  config?: unknown;
+  context?: Record<string, unknown>;
   metadata?: Record<string, unknown>;
 }
 
@@ -494,21 +504,21 @@ export class EnterpriseObservabilityManager {
     const config = this.dependencies.configManager.getConfig();
     for (const customMetric of config.metrics.customMetrics) {
       switch (customMetric.type) {
-        case 'counter':
+        case MetricTypeDefinition.COUNTER:
           this.dependencies.metricsProvider.createCounter(
             customMetric.name,
             customMetric.description,
             customMetric.unit
           );
           break;
-        case 'histogram':
+        case MetricTypeDefinition.HISTOGRAM:
           this.dependencies.metricsProvider.createHistogram(
             customMetric.name,
             customMetric.description,
             customMetric.unit
           );
           break;
-        case 'gauge':
+        case MetricTypeDefinition.GAUGE:
           this.dependencies.metricsProvider.createGauge(
             customMetric.name,
             customMetric.description,
@@ -528,10 +538,10 @@ export class EnterpriseObservabilityManager {
       enabled: true,
       query: 'waveops_coordination_latency_ms{quantile="0.99"} > 2000',
       condition: {
-        operator: 'greater_than',
+        operator: ComparisonOperator.GREATER_THAN,
         threshold: 2000
       },
-      severity: 'warning',
+      severity: AlertSeverity.WARNING,
       duration: '5m',
       labels: {
         service: 'waveops',
@@ -549,10 +559,10 @@ export class EnterpriseObservabilityManager {
       enabled: true,
       query: 'rate(waveops_errors_total[5m]) > 0.1',
       condition: {
-        operator: 'greater_than',
+        operator: ComparisonOperator.GREATER_THAN,
         threshold: 0.1
       },
-      severity: 'critical',
+      severity: AlertSeverity.CRITICAL,
       duration: '2m',
       labels: {
         service: 'waveops',
@@ -570,10 +580,10 @@ export class EnterpriseObservabilityManager {
       enabled: true,
       query: 'up{job="waveops"} == 0',
       condition: {
-        operator: 'equals',
+        operator: ComparisonOperator.EQUALS,
         threshold: 0
       },
-      severity: 'critical',
+      severity: AlertSeverity.CRITICAL,
       duration: '1m',
       labels: {
         service: 'waveops',

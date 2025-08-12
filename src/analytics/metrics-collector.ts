@@ -515,7 +515,11 @@ export class MetricsCollector implements IMetricsCollector {
       
       // Group issues by wave and collect metrics for each
       const waveIssues = searchResults.items.filter(issue => 
-        issue.title.toLowerCase().includes('wave') || issue.labels.some(label => label.name?.includes('wave'))
+        issue.title.toLowerCase().includes('wave') || 
+        (issue.labels && issue.labels.some(label => {
+          const labelName = typeof label === 'string' ? label : label.name;
+          return labelName?.includes('wave');
+        }))
       );
       
       if (waveIssues.length > 0) {
@@ -528,19 +532,13 @@ export class MetricsCollector implements IMetricsCollector {
             startTime: new Date(issue.created_at),
             endTime: issue.closed_at ? new Date(issue.closed_at) : undefined,
             duration: issue.closed_at ? new Date(issue.closed_at).getTime() - new Date(issue.created_at).getTime() : undefined,
-            status: issue.state === 'closed' ? 'completed' : 'active',
+            status: issue.state === 'closed' ? 'completed' : 'in_progress',
             teamMetrics: {}, // Would need additional API calls to get team details
             totalTasks: 0, // Would need to parse from issue body or comments
             completedTasks: 0,
             blockedTasks: 0,
             criticalPath: [],
             bottlenecks: [],
-            qualityMetrics: {
-              defectRate: 0,
-              firstPassSuccessRate: 0,
-              averageReviewTime: 0,
-              reworkRate: 0
-            },
             timestamp: new Date(issue.updated_at)
           };
           
