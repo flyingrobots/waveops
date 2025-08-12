@@ -538,8 +538,7 @@ export class MetricsCollector implements IMetricsCollector {
             completedTasks: 0,
             blockedTasks: 0,
             criticalPath: [],
-            bottlenecks: [],
-            timestamp: new Date(issue.updated_at)
+            bottlenecks: []
           };
           
           historicalMetrics.push(waveMetrics);
