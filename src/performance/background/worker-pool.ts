@@ -5,6 +5,7 @@
 import { EventEmitter } from 'events';
 import { Worker } from 'worker_threads';
 import { WorkerConfig, AutoScalingConfig } from '../types';
+import { Task, TaskResult, TaskHandler } from './queue-manager';
 
 export interface WorkerMetrics {
   totalWorkers: number;
@@ -30,6 +31,7 @@ interface WorkerInstance {
   isHealthy: boolean;
   errorCount: number;
   restartCount: number;
+  execute(task: Task, handler: TaskHandler): Promise<TaskResult>;
 }
 
 interface TaskExecution {
@@ -262,7 +264,34 @@ export class WorkerPool extends EventEmitter {
       totalTaskTime: 0,
       isHealthy: true,
       errorCount: 0,
-      restartCount: 0
+      restartCount: 0,
+      execute: async (task: Task, handler: TaskHandler): Promise<TaskResult> => {
+        const startTime = Date.now();
+        try {
+          const result = await handler.execute(task.data, task.metadata);
+          return {
+            taskId: task.id,
+            success: true,
+            result,
+            error: undefined,
+            duration: Date.now() - startTime,
+            retryCount: 0,
+            executionTime: Date.now() - startTime,
+            metadata: { workerId }
+          };
+        } catch (error) {
+          return {
+            taskId: task.id,
+            success: false,
+            result: undefined,
+            error: error instanceof Error ? error.message : String(error),
+            duration: Date.now() - startTime,
+            retryCount: 0,
+            executionTime: Date.now() - startTime,
+            metadata: { workerId }
+          };
+        }
+      }
     };
 
     // In a real implementation, this would create actual worker threads

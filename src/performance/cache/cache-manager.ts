@@ -84,6 +84,15 @@ export class CacheManager extends EventEmitter implements ICacheManager {
   }
 
   /**
+   * Start the cache manager
+   */
+  async start(): Promise<void> {
+    // Cache manager is already initialized in constructor
+    // This method is for compatibility with other components
+    this.emit('manager-started');
+  }
+
+  /**
    * Get value from cache with intelligent layer selection
    */
   async get<T>(key: string): Promise<T | null> {

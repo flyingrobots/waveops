@@ -41,6 +41,8 @@ export interface TaskResult {
   error?: string;
   duration: number;
   retryCount: number;
+  executionTime: number;
+  metadata?: Record<string, unknown>;
 }
 
 export interface QueueMetrics {
@@ -314,7 +316,8 @@ export class QueueManager extends EventEmitter {
         success: true,
         result,
         duration,
-        retryCount: task.retries
+        retryCount: task.retries,
+        executionTime: duration
       };
 
       queue.emit('task-completed', taskResult);
@@ -333,7 +336,8 @@ export class QueueManager extends EventEmitter {
         success: false,
         error: errorMessage,
         duration,
-        retryCount: task.retries
+        retryCount: task.retries,
+        executionTime: duration
       };
 
       // Check if task should be retried
@@ -419,6 +423,7 @@ export class QueueManager extends EventEmitter {
         name: deadLetterQueueName,
         type: QueueType.FIFO,
         maxSize: 10000,
+        maxConcurrency: 1,
         priority: QueuePriority.LOW,
         deadLetterQueue: false,
         retryPolicy: {
@@ -480,7 +485,7 @@ export class QueueManager extends EventEmitter {
   }
 }
 
-interface TaskHandler {
+export interface TaskHandler {
   execute(data: unknown, metadata?: Record<string, unknown>): Promise<unknown>;
 }
 

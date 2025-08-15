@@ -156,6 +156,7 @@ export interface AuthorizationContext {
   time?: Date;
   location?: string;
   metadata?: Record<string, unknown>;
+  [key: string]: unknown;
 }
 
 export interface AuthorizationResult {

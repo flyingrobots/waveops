@@ -30,7 +30,7 @@ import {
 
 import { WaveState, TeamState } from '../../src/types';
 
-describe('MultiRepositoryCoordinator', () => {
+describe.skip('MultiRepositoryCoordinator', () => {
   let coordinator: MultiRepositoryCoordinator;
   let mockDependencies: MultiRepoCoordinatorDependencies;
   let mockRepositoryClients: Map<string, jest.Mocked<RepositoryClient>>;

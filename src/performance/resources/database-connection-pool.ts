@@ -73,7 +73,7 @@ export class DatabaseConnectionPool extends EventEmitter {
     // Create minimum connections
     const createPromises: Promise<void>[] = [];
     for (let i = 0; i < this.config.minConnections; i++) {
-      createPromises.push(this.createConnection());
+      createPromises.push(this.createConnection().then(() => {}));
     }
 
     await Promise.allSettled(createPromises);
