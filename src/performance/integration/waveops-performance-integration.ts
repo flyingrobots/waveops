@@ -5,10 +5,11 @@
 
 import { EventEmitter } from 'events';
 import { PerformanceCoordinator, createDefaultPerformanceConfig, mergePerformanceConfig } from '../';
+import type { PerformanceMetrics } from '../performance-coordinator';
 
 // Import existing WaveOps types and classes
 import type { WaveState, TeamState, WaveMetrics } from '../../types';
-import type { EnhancedCoordinator } from '../../coordination/enhanced-coordinator';
+import type { EnhancedWaveCoordinator } from '../../coordination/enhanced-coordinator';
 import type { MetricsAdvisor } from '../../analytics/metrics-advisor';
 import type { WorkStealingEngine } from '../../coordination/work-stealing';
 import type { GitHubClient } from '../../github/client';
@@ -23,7 +24,7 @@ export interface WaveOpsPerformanceConfig {
   customConfig?: Partial<import('../performance-coordinator').PerformanceConfig>;
 }
 
-export interface WaveOpsPerformanceMetrics extends import('../performance-coordinator').PerformanceMetrics {
+export interface WaveOpsPerformanceMetrics extends PerformanceMetrics {
   waveOps: {
     activeWaves: number;
     totalTeams: number;
@@ -41,7 +42,7 @@ export interface WaveOpsPerformanceMetrics extends import('../performance-coordi
 export class WaveOpsPerformanceIntegration extends EventEmitter {
   private readonly config: WaveOpsPerformanceConfig;
   private readonly performanceCoordinator: PerformanceCoordinator;
-  private enhancedCoordinator?: EnhancedCoordinator;
+  private enhancedCoordinator?: EnhancedWaveCoordinator;
   private metricsAdvisor?: MetricsAdvisor;
   private workStealingEngine?: WorkStealingEngine;
   private githubClient?: GitHubClient;
@@ -67,7 +68,7 @@ export class WaveOpsPerformanceIntegration extends EventEmitter {
    * Initialize performance integration with WaveOps components
    */
   async initialize(components: {
-    enhancedCoordinator?: EnhancedCoordinator;
+    enhancedCoordinator?: EnhancedWaveCoordinator;
     metricsAdvisor?: MetricsAdvisor;
     workStealingEngine?: WorkStealingEngine;
     githubClient?: GitHubClient;

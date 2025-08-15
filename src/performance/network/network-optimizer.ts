@@ -136,6 +136,15 @@ export class NetworkOptimizer extends EventEmitter {
   }
 
   /**
+   * Start the network optimizer
+   */
+  async start(): Promise<void> {
+    // Network optimizer is already initialized in constructor
+    // This method is for compatibility with other components
+    this.emit('optimizer-started');
+  }
+
+  /**
    * Execute a network request with all optimizations applied
    */
   async executeRequest(request: NetworkRequest): Promise<NetworkResponse> {

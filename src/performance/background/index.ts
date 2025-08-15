@@ -2,7 +2,7 @@
  * Background processing system exports
  */
 
-export { QueueManager, Task, TaskResult, QueueMetrics } from './queue-manager';
+export { QueueManager, Task, TaskResult, QueueMetrics, TaskHandler } from './queue-manager';
 export { WorkerPool, WorkerMetrics } from './worker-pool';
 export { TaskScheduler, ScheduledTask, SchedulerMetrics } from './task-scheduler';
 export { QueueMetricsCollector, AlertEvent, MetricsSnapshot, SystemMetrics } from './queue-metrics-collector';

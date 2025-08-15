@@ -92,6 +92,15 @@ export class ResourceManager extends EventEmitter {
   }
 
   /**
+   * Start the resource manager
+   */
+  async start(): Promise<void> {
+    // Resource manager is already initialized in constructor
+    // This method is for compatibility with other components
+    this.emit('manager-started');
+  }
+
+  /**
    * Get a connection from a specific pool
    */
   async getConnection(poolName: string): Promise<unknown> {
@@ -124,7 +133,7 @@ export class ResourceManager extends EventEmitter {
     }
 
     try {
-      await pool.release(connection);
+      await pool.release(connection as any);
       this.emit('connection-released', { poolName, connectionId: this.getConnectionId(connection) });
     } catch (error) {
       this.emit('connection-error', { poolName, error });

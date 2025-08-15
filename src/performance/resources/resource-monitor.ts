@@ -9,6 +9,7 @@ import { SystemResourceMetrics, LeakDetectionMetrics } from './resource-manager'
 interface ResourceSample {
   timestamp: Date;
   memoryUsage: number;
+  memoryUtilization: number;
   cpuUsage: number;
   fileHandles: number;
   networkConnections: number;
@@ -113,12 +114,6 @@ export class ResourceMonitor extends EventEmitter {
   addResourceSample(sample: Partial<ResourceSample>): void {
     const fullSample: ResourceSample = {
       timestamp: new Date(),
-      memoryUsage: 0,
-      cpuUsage: 0,
-      fileHandles: 0,
-      networkConnections: 0,
-      activeTimers: 0,
-      eventListeners: 0,
       ...sample,
       ...this.getSystemMetrics()
     };
