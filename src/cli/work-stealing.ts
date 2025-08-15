@@ -20,7 +20,7 @@ class WorkStealingCLI {
 
   constructor() {
     // Initialize with mock dependencies for CLI demonstration
-    const githubClient = new GitHubClient('owner', 'repo', { auth: 'token' });
+    const githubClient = new GitHubClient({ auth: 'token' }, 'owner', 'repo');
     const validationEngine = new ValidationEngine(githubClient);
     
     const deps = {
@@ -40,9 +40,9 @@ class WorkStealingCLI {
       }),
       updateWaveState: async () => {},
       getTasks: async () => [
-        { id: 'ui-task-1', title: 'Frontend Dashboard', wave: 1, team: 'frontend', depends_on: [], acceptance: [], critical: false },
-        { id: 'ui-task-2', title: 'UI Components', wave: 1, team: 'frontend', depends_on: [], acceptance: [], critical: false },
-        { id: 'api-task-1', title: 'Backend API', wave: 1, team: 'backend', depends_on: ['ui-task-1'], acceptance: [], critical: true }
+        { id: 'ui-task-1', title: 'Frontend Dashboard', wave: 1, team: 'frontend', depends_on: [], acceptance: [], critical: false, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+        { id: 'ui-task-2', title: 'UI Components', wave: 1, team: 'frontend', depends_on: [], acceptance: [], critical: false, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+        { id: 'api-task-1', title: 'Backend API', wave: 1, team: 'backend', depends_on: ['ui-task-1'], acceptance: [], critical: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }
       ],
       updateTaskAssignment: async (taskId: string, newTeam: string) => {
         console.log(`📝 Updated task ${taskId} assignment to team ${newTeam}`);

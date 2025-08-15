@@ -12,8 +12,8 @@ import {
   ResourceAlertThresholds,
   LifecycleConfig
 } from '../types';
-import { DatabaseConnectionPool } from './database-connection-pool';
-import { HttpConnectionPool } from './http-connection-pool';
+import { DatabaseConnectionPool, DatabaseConnection } from './database-connection-pool';
+import { HttpConnectionPool, HttpConnection } from './http-connection-pool';
 import { ResourceMonitor } from './resource-monitor';
 import { ResourceLifecycleManager } from './resource-lifecycle-manager';
 
@@ -92,6 +92,13 @@ export class ResourceManager extends EventEmitter {
   }
 
   /**
+   * Start the resource manager
+   */
+  async start(): Promise<void> {
+    this.emit('resource-manager-started');
+  }
+
+  /**
    * Get a connection from a specific pool
    */
   async getConnection(poolName: string): Promise<unknown> {
@@ -117,14 +124,14 @@ export class ResourceManager extends EventEmitter {
   /**
    * Release a connection back to its pool
    */
-  async releaseConnection(poolName: string, connection: unknown): Promise<void> {
+  async releaseConnection(poolName: string, connection: DatabaseConnection | HttpConnection): Promise<void> {
     const pool = this.connectionPools.get(poolName);
     if (!pool) {
       return; // Pool might have been removed during shutdown
     }
 
     try {
-      await pool.release(connection);
+      await (pool as any).release(connection);
       this.emit('connection-released', { poolName, connectionId: this.getConnectionId(connection) });
     } catch (error) {
       this.emit('connection-error', { poolName, error });

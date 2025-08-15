@@ -113,12 +113,6 @@ export class ResourceMonitor extends EventEmitter {
   addResourceSample(sample: Partial<ResourceSample>): void {
     const fullSample: ResourceSample = {
       timestamp: new Date(),
-      memoryUsage: 0,
-      cpuUsage: 0,
-      fileHandles: 0,
-      networkConnections: 0,
-      activeTimers: 0,
-      eventListeners: 0,
       ...sample,
       ...this.getSystemMetrics()
     };
@@ -253,9 +247,10 @@ export class ResourceMonitor extends EventEmitter {
     const thresholds = this.config.alertThresholds;
     const alerts: string[] = [];
 
-    // Memory usage threshold
-    if (sample.memoryUtilization > thresholds.memoryUsage) {
-      alerts.push(`Memory utilization: ${sample.memoryUtilization.toFixed(1)}%`);
+    // Memory usage threshold - calculate utilization percentage
+    const memoryUtilization = (sample.memoryUsage / (1024 * 1024 * 1024)) * 100; // Convert to GB and percentage
+    if (memoryUtilization > thresholds.memoryUsage) {
+      alerts.push(`Memory utilization: ${memoryUtilization.toFixed(1)}%`);
     }
 
     // File handle threshold (estimate based on system limits)

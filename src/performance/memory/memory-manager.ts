@@ -54,6 +54,13 @@ export class MemoryManager extends EventEmitter implements IMemoryManager {
   }
 
   /**
+   * Start the memory manager
+   */
+  async start(): Promise<void> {
+    this.emit('memory-manager-started');
+  }
+
+  /**
    * Get an existing object pool
    */
   getPool<T>(name: string): ObjectPool<T> | null {

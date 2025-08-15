@@ -12,7 +12,7 @@ import {
   QueueMonitoringConfig,
   BackoffType
 } from '../types';
-import { WorkerPool } from './worker-pool';
+import { WorkerPool, WorkerInstance } from './worker-pool';
 import { TaskScheduler } from './task-scheduler';
 import { QueueMetricsCollector } from './queue-metrics-collector';
 
@@ -289,7 +289,7 @@ export class QueueManager extends EventEmitter {
     }
   }
 
-  private async processTask(task: Task, worker: Worker, queue: TaskQueue): Promise<void> {
+  private async processTask(task: Task, worker: WorkerInstance, queue: TaskQueue): Promise<void> {
     const startTime = Date.now();
     task.startedAt = new Date();
 
@@ -419,6 +419,7 @@ export class QueueManager extends EventEmitter {
         name: deadLetterQueueName,
         type: QueueType.FIFO,
         maxSize: 10000,
+        maxConcurrency: 1,
         priority: QueuePriority.LOW,
         deadLetterQueue: false,
         retryPolicy: {
